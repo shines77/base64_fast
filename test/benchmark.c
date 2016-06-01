@@ -1,21 +1,32 @@
+
 #define _POSIX_C_SOURCE 199309L		// for clock_gettime()
 
-#include <stdbool.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
-#include "../include/libbase64.h"
-#include "codec_supported.h"
+#include "../src/base64_fast.h"
 
-#define KB	1024
-#define MB	(1024 * KB)
+#define KB	        (1024)
+#define MB	        (1024 * KB)
+#define GB	        (1024 * MB)
 
-#define RANDOMDEV  "/dev/urandom"
+#define RANDOMDEV   "/dev/urandom"
+
+typedef ptrdiff_t ssize_t;
 
 struct buffers {
 	char *reg;
@@ -24,29 +35,64 @@ struct buffers {
 	size_t encsz;
 };
 
-// Define buffer sizes to test with:
-static struct bufsize {
-	char	*label;
-	size_t	 len;
-	int	 repeat;
-	int	 batch;
-}
-sizes[] = {
-	{ "10 MB",	MB * 10,	10,	1	},
-	{ "1 MB",	MB * 1,		10,	10	},
-	{ "100 KB",	KB * 100,	10,	100	},
-	{ "10 KB",	KB * 10,	100,	100	},
-	{ "1 KB",	KB * 1,		100,	1000	},
+struct bufsize {
+	char   *label;
+	size_t	len;
+	int	    repeat;
+	int	    batch;
 };
 
-static inline float
-bytes_to_mb (size_t bytes)
+typedef struct bufsize bufsize_t;
+
+// Define buffer sizes to test with:
+static bufsize_t sizes[] = {
+	{ "10 MB",	MB * 10,	10,	    1	    },
+	{ "1 MB",	MB * 1,		10,	    10	    },
+	{ "100 KB",	KB * 100,	10,	    100	    },
+	{ "10 KB",	KB * 10,	100,	100	    },
+	{ "1 KB",	KB * 1,		100,	1000    },
+};
+
+static const uint32_t zoom_times = 10;
+
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
+#ifndef inline
+#define inline  __inline
+#endif
+#endif // _WIN32
+
+static inline double
+bytes_to_mb(size_t bytes)
 {
-	return bytes / (float) MB;
+	return (double)bytes * zoom_times / (double) MB;
 }
 
+static inline double
+bytes_to_gb(size_t bytes)
+{
+	return (double)bytes * zoom_times / (double) GB;
+}
+
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
 static bool
-get_random_data (struct buffers *b, char **errmsg)
+get_random_data(struct buffers *b, char **errmsg)
+{
+	size_t total_read = 0;
+
+    srand((unsigned)time(NULL));
+
+	printf("Filling buffer with %.1f MB of random data...\n", bytes_to_mb(b->regsz));
+
+    unsigned char * cur = b->reg;
+	while (total_read < b->regsz) {
+        *cur++ = (unsigned char)(rand() & 0xFFU);
+		total_read++;
+	}
+	return true;
+}
+#else
+static bool
+get_random_data(struct buffers *b, char **errmsg)
 {
 	int fd;
 	ssize_t nread;
@@ -71,17 +117,91 @@ get_random_data (struct buffers *b, char **errmsg)
 	close(fd);
 	return true;
 }
+#endif // _WIN32
 
-static float
-timediff_sec (struct timespec *start, struct timespec *end)
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
+
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME  1
+#endif
+
+//
+// See: http://stackoverflow.com/questions/5404277/porting-clock-gettime-to-windows
+//
+
+static LARGE_INTEGER
+getFILETIMEoffset()
 {
-	return (end->tv_sec - start->tv_sec) + ((float)(end->tv_nsec - start->tv_nsec)) / 1e9f;
+    SYSTEMTIME s;
+    FILETIME f;
+    LARGE_INTEGER t;
+
+    s.wYear = 1970;
+    s.wMonth = 1;
+    s.wDay = 1;
+    s.wHour = 0;
+    s.wMinute = 0;
+    s.wSecond = 0;
+    s.wMilliseconds = 0;
+    SystemTimeToFileTime(&s, &f);
+    t.QuadPart = f.dwHighDateTime;
+    t.QuadPart <<= 32;
+    t.QuadPart |= f.dwLowDateTime;
+    return (t);
+}
+
+static int
+clock_gettime(int flag, struct timespec *tv)
+{
+    LARGE_INTEGER           t;
+    FILETIME                f;
+    double                  microSeconds;
+    static LARGE_INTEGER    offset;
+    static double           frequencyToMicroseconds;
+    static int              initialized = 0;
+    static BOOL             usePerformanceCounter = 0;
+
+    if (!initialized) {
+        LARGE_INTEGER performanceFrequency;
+        initialized = 1;
+        usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
+        if (usePerformanceCounter) {
+            QueryPerformanceCounter(&offset);
+            frequencyToMicroseconds = (double)performanceFrequency.QuadPart / 1000000.;
+        } else {
+            offset = getFILETIMEoffset();
+            frequencyToMicroseconds = 10.;
+        }
+    }
+    if (usePerformanceCounter) {
+        QueryPerformanceCounter(&t);
+    }
+    else {
+        GetSystemTimeAsFileTime(&f);
+        t.QuadPart = f.dwHighDateTime;
+        t.QuadPart <<= 32;
+        t.QuadPart |= f.dwLowDateTime;
+    }
+
+    t.QuadPart -= offset.QuadPart;
+    microSeconds = (double)t.QuadPart / frequencyToMicroseconds;
+    t.QuadPart = (LONGLONG)microSeconds;
+    tv->tv_sec = t.QuadPart / 1000000;
+    tv->tv_nsec = t.QuadPart % 1000000;
+    return (0);
+}
+#endif // _WIN32
+
+static double
+timediff_sec(struct timespec *start, struct timespec *end)
+{
+	return (end->tv_sec - start->tv_sec) + ((double)(end->tv_nsec - start->tv_nsec)) / 1e9;
 }
 
 static void
-codec_bench_enc (struct buffers *b, const struct bufsize *bs, const char *name, unsigned int flags)
+codec_bench_enc(struct buffers *b, const struct bufsize *bs, const char *name)
 {
-	float timediff, fastest = -1.0f;
+	double timediff, fastest = -1.0;
 	struct timespec start, end;
 
 	// Reset buffer size:
@@ -92,25 +212,26 @@ codec_bench_enc (struct buffers *b, const struct bufsize *bs, const char *name, 
 
 		// Timing loop, use batches to increase timer resolution:
 		clock_gettime(CLOCK_REALTIME, &start);
-		for (int j = bs->batch; j; j--)
-			base64_encode(b->reg, b->regsz, b->enc, &b->encsz, flags);
+		for (int j = bs->batch * zoom_times; j; j--)
+			base64_encode_fast((const char *)b->reg, b->regsz, b->enc, b->encsz);
 		clock_gettime(CLOCK_REALTIME, &end);
 
 		// Calculate average time of batch:
 		timediff = timediff_sec(&start, &end) / bs->batch;
 
 		// Update fastest time seen:
-		if (fastest < 0.0f || timediff < fastest)
+		if (fastest < 0.0 || timediff < fastest)
 			fastest = timediff;
 	}
 
-	printf("%s\tencode\t%.02f MB/sec\n", name, bytes_to_mb(b->regsz) / fastest);
+	printf("%s\tencode\t%.02f GB/sec, fastest\t%0.3f ms\n", name,
+        bytes_to_gb(b->regsz) / fastest, fastest * 1000.0);
 }
 
 static void
-codec_bench_dec (struct buffers *b, const struct bufsize *bs, const char *name, unsigned int flags)
+codec_bench_dec(struct buffers *b, const struct bufsize *bs, const char *name)
 {
-	float timediff, fastest = -1.0f;
+	double timediff, fastest = -1.0;
 	struct timespec start, end;
 
 	// Reset buffer size:
@@ -121,30 +242,30 @@ codec_bench_dec (struct buffers *b, const struct bufsize *bs, const char *name, 
 
 		// Timing loop, use batches to increase timer resolution:
 		clock_gettime(CLOCK_REALTIME, &start);
-		for (int j = bs->batch; j; j--)
-			base64_decode(b->enc, b->encsz, b->reg, &b->regsz, flags);
+		for (int j = bs->batch * zoom_times; j; j--)
+			base64_decode_fast((const char *)b->enc, b->encsz, b->reg, b->regsz);
 		clock_gettime(CLOCK_REALTIME, &end);
 
 		// Calculate average time of batch:
 		timediff = timediff_sec(&start, &end) / bs->batch;
 
 		// Update fastest time seen:
-		if (fastest < 0.0f || timediff < fastest)
+		if (fastest < 0.0 || timediff < fastest)
 			fastest = timediff;
 	}
 
-	printf("%s\tdecode\t%.02f MB/sec\n", name, bytes_to_mb(b->encsz) / fastest);
+	printf("%s\tdecode\t%.02f GB/sec, fastest\t%0.3f ms\n", name,
+        bytes_to_gb(b->encsz) / fastest, fastest * 1000.0);
 }
 
 static void
-codec_bench (struct buffers *b, const struct bufsize *bs, const char *name, unsigned int flags)
+codec_bench(struct buffers *b, const struct bufsize *bs)
 {
-	codec_bench_enc(b, bs, name, flags);
-	codec_bench_dec(b, bs, name, flags);
+	codec_bench_enc(b, bs, "plain");
+	codec_bench_dec(b, bs, "plain");
 }
 
-int
-main ()
+int main(int argc, char * argv[])
 {
 	int ret = 0;
 	char *errmsg = NULL;
@@ -155,14 +276,14 @@ main ()
 	b.encsz = sizes[0].len * 5 / 3;
 
 	// Allocate space for megabytes of random data:
-	if ((b.reg = malloc(b.regsz)) == NULL) {
+	if ((b.reg = (char *)malloc(b.regsz)) == NULL) {
 		errmsg = "Out of memory";
 		ret = 1;
 		goto err0;
 	}
 
 	// Allocate space for encoded output:
-	if ((b.enc = malloc(b.encsz)) == NULL) {
+	if ((b.enc = (char *)malloc(b.encsz)) == NULL) {
 		errmsg = "Out of memory";
 		ret = 1;
 		goto err1;
@@ -175,21 +296,22 @@ main ()
 	}
 
 	// Loop over all buffer sizes:
-	for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
+	for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
 		printf("Testing with buffer size %s, fastest of %d * %d\n",
 			sizes[i].label, sizes[i].repeat, sizes[i].batch);
 
-		// Loop over all codecs:
-		for (size_t j = 0; codecs[j]; j++)
-			if (codec_supported(1 << j))
-				codec_bench(&b, &sizes[i], codecs[j], 1 << j);
+        codec_bench(&b, &sizes[i]);
 	};
 
 	// Free memory:
-err2:	free(b.enc);
-err1:	free(b.reg);
-err0:	if (errmsg)
+err2:
+    free(b.enc);
+err1:
+    free(b.reg);
+err0:
+    if (errmsg)
 		fputs(errmsg, stderr);
 
+    system("pause");
 	return ret;
 }
