@@ -216,7 +216,7 @@ test_streaming()
 		memset(enc, 0, 400);
         decode_size = 1;
 		while (decode_size > 0) {
-            if (enclen > sizeof(enc) - 1
+            if (enclen > sizeof(enc) - 1)
                 break;
             partlen = (sizeof(enc) - 1) - enclen;
             decode_size = base64_decode_fast(&ref[inpos], (inpos + bs > reflen) ? reflen - inpos : bs, &enc[enclen], partlen);

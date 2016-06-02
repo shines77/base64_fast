@@ -1,15 +1,17 @@
 CFLAGS += -std=c99 -O3 -Wall -Wextra -pedantic
 
-.PHONY: clean test
+.PHONY: all clean test
+
+all: test_base64 benchmark
 
 test: clean test_base64 benchmark
 	./test_base64
 	./benchmark
 
-test_base64: test_base64.c ../src/base64_fast.o
+test_base64: test_base64.c ../src/base64_fast.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-benchmark: benchmark.c ../src/base64_fast.o
+benchmark: benchmark.c ../src/base64_fast.c
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
 
 ../%:
