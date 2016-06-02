@@ -1,23 +1,29 @@
+
 #include <stddef.h>	// size_t
 #include <stdio.h>	// fopen()
 #include <string.h>	// strlen()
+#include <stdint.h>
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
+#else
 #include <getopt.h>
+#endif
 #include "base64_fast.h"
 
 #define BUFSIZE 1024 * 1024
 
 static char buf[BUFSIZE];
-static char out[((BUFSIZE + 2) / 3) * 4];	// Technically 4/3 of input, but take some margin
-size_t nread;
-size_t nout;
+static char out[((BUFSIZE + 2) / 3) * 4 + 1];	// Technically 4/3 of input, but take some margin
+ssize_t nread;
+ssize_t nout;
 
 static int
 base64_enc(FILE *fp)
 {
 	int ret = 1;
+    size_t out_len = sizeof(out) - 1;
 	while ((nread = fread(buf, 1, BUFSIZE, fp)) > 0) {
-		base64_stream_encode(buf, nread, out, &nout);
-		if (nout) {
+		nout = base64_encode_fast(buf, nread, out, out_len);
+		if (nout > 0) {
 			fwrite(out, nout, 1, stdout);
 		}
 		if (feof(fp)) {
@@ -27,14 +33,9 @@ base64_enc(FILE *fp)
 	if (ferror(fp)) {
 		fprintf(stderr, "read error\n");
 		ret = 0;
-		goto out;
+		goto enc_out;
 	}
-	base64_stream_encode_final(out, &nout);
-
-	if (nout) {
-		fwrite(out, nout, 1, stdout);
-	}
-out:
+enc_out:
     fclose(fp);
 	fclose(stdout);
 	return ret;
@@ -44,11 +45,12 @@ static int
 base64_dec(FILE *fp)
 {
 	int ret = 1;
+    size_t out_len = sizeof(out) - 1;
 	while ((nread = fread(buf, 1, BUFSIZE, fp)) > 0) {
-		if (!base64_stream_decode(buf, nread, out, &nout)) {
+		if ((nout = base64_decode_fast(buf, nread, out, out_len)) < 0) {
 			fprintf(stderr, "decoding error\n");
 			ret = 0;
-			goto out;
+			goto dec_out;
 		}
 		if (nout) {
 			fwrite(out, nout, 1, stdout);
@@ -61,19 +63,28 @@ base64_dec(FILE *fp)
 		fprintf(stderr, "read error\n");
 		ret = 0;
 	}
-out:
+dec_out:
     fclose(fp);
 	fclose(stdout);
 	return ret;
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char * argv[])
 {
 	char *file;
 	FILE *fp;
 	int decode = 0;
 
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
+    errno_t err_no;
+    int optind = argc - 1;
+    for (int i = 1; i < argc; ++i) {
+        if ((strcmp(argv[i], "-d") == 0) || (strcmp(argv[i], "-decode") == 0)) {
+            decode = 1;
+        }
+    }
+#else
 	// Parse options:
 	for (;;)
 	{
@@ -93,6 +104,7 @@ main(int argc, char **argv)
 				break;
 		}
 	}
+#endif
 
 	// No options left on command line? Read from stdin:
 	if (optind >= argc) {
@@ -105,10 +117,19 @@ main(int argc, char **argv)
 		if (strcmp(file, "-") == 0) {
 			fp = stdin;
 		}
-		else if ((fp = fopen(file, "rb")) == NULL) {
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
+		else if ((err_no = fopen_s(&fp, file, "rb")) != 0) {
+            if (fp == NULL) {
+			    printf("cannot open %s\n", file);
+			    return 1;
+            }
+        }
+#else
+        else if ((fp = fopen(file, "rb")) == NULL) {
 			printf("cannot open %s\n", file);
 			return 1;
 		}
+#endif
 	}
 
 	// More than one option left on command line? Syntax error:
@@ -118,5 +139,6 @@ main(int argc, char **argv)
 	}
 
 	// Invert return codes to create shell return code:
-	return (decode) ? !base64_dec(fp) : !base64_enc(fp);
+	int success = (decode) ? !base64_dec(fp) : !base64_enc(fp);
+    return success;
 }

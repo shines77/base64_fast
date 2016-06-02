@@ -26,8 +26,6 @@
 
 #define RANDOMDEV   "/dev/urandom"
 
-typedef ptrdiff_t ssize_t;
-
 struct buffers {
 	char *reg;
 	char *enc;
@@ -53,7 +51,7 @@ static bufsize_t sizes[] = {
 	{ "1 KB",	KB * 1,		100,	1000    },
 };
 
-static const uint32_t zoom_times = 10;
+static const uint32_t zoom_times = 1;
 
 #if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
 #ifndef inline
@@ -144,9 +142,7 @@ getFILETIMEoffset()
     s.wSecond = 0;
     s.wMilliseconds = 0;
     SystemTimeToFileTime(&s, &f);
-    t.QuadPart = f.dwHighDateTime;
-    t.QuadPart <<= 32;
-    t.QuadPart |= f.dwLowDateTime;
+    t.QuadPart = ((uint64_t)f.dwHighDateTime << 32) | (uint64_t)f.dwLowDateTime;
     return (t);
 }
 
@@ -155,11 +151,11 @@ clock_gettime(int flag, struct timespec *tv)
 {
     LARGE_INTEGER           t;
     FILETIME                f;
-    double                  microSeconds;
+    double                  nanoSeconds;
     static LARGE_INTEGER    offset;
-    static double           frequencyToMicroseconds;
+    static double           frequencyToNanoseconds;
     static int              initialized = 0;
-    static BOOL             usePerformanceCounter = 0;
+    static BOOL             usePerformanceCounter = FALSE;
 
     if (!initialized) {
         LARGE_INTEGER performanceFrequency;
@@ -167,27 +163,27 @@ clock_gettime(int flag, struct timespec *tv)
         usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
         if (usePerformanceCounter) {
             QueryPerformanceCounter(&offset);
-            frequencyToMicroseconds = (double)performanceFrequency.QuadPart / 1000000.;
+            frequencyToNanoseconds = (double)performanceFrequency.QuadPart / 1e+9;
         } else {
             offset = getFILETIMEoffset();
-            frequencyToMicroseconds = 10.;
+            // GetSystemTimeAsFileTime()'s precision is 0.1 us (= 0.0001 ms, and = 100 ns).
+            frequencyToNanoseconds = 1.0 / 100.0;
         }
     }
     if (usePerformanceCounter) {
         QueryPerformanceCounter(&t);
     }
     else {
+        // The FILETIME structure is a 64-bit value representing the number of 100-nanosecond intervals since January 1, 1601.
         GetSystemTimeAsFileTime(&f);
-        t.QuadPart = f.dwHighDateTime;
-        t.QuadPart <<= 32;
-        t.QuadPart |= f.dwLowDateTime;
+        t.QuadPart = ((uint64_t)f.dwHighDateTime << 32) | (uint64_t)f.dwLowDateTime;
     }
 
     t.QuadPart -= offset.QuadPart;
-    microSeconds = (double)t.QuadPart / frequencyToMicroseconds;
-    t.QuadPart = (LONGLONG)microSeconds;
-    tv->tv_sec = t.QuadPart / 1000000;
-    tv->tv_nsec = t.QuadPart % 1000000;
+    nanoSeconds = (double)t.QuadPart / frequencyToNanoseconds;
+    t.QuadPart = (LONGLONG)nanoSeconds;
+    tv->tv_sec = (time_t)(t.QuadPart / 1000000000);
+    tv->tv_nsec = (long)(t.QuadPart % 1000000000);
     return (0);
 }
 #endif // _WIN32
@@ -195,7 +191,7 @@ clock_gettime(int flag, struct timespec *tv)
 static double
 timediff_sec(struct timespec *start, struct timespec *end)
 {
-	return (end->tv_sec - start->tv_sec) + ((double)(end->tv_nsec - start->tv_nsec)) / 1e9;
+	return (end->tv_sec - start->tv_sec) + ((double)(end->tv_nsec - start->tv_nsec)) / 1e+9;
 }
 
 static void
@@ -224,8 +220,8 @@ codec_bench_enc(struct buffers *b, const struct bufsize *bs, const char *name)
 			fastest = timediff;
 	}
 
-	printf("%s\tencode\t%.02f GB/sec, fastest\t%0.3f ms\n", name,
-        bytes_to_gb(b->regsz) / fastest, fastest * 1000.0);
+	printf("%s\tencode\t%.02f MB/sec, fastest\t%0.3f ms\n", name,
+        bytes_to_mb(b->regsz) / fastest, fastest * 1000.0);
 }
 
 static void
@@ -254,8 +250,8 @@ codec_bench_dec(struct buffers *b, const struct bufsize *bs, const char *name)
 			fastest = timediff;
 	}
 
-	printf("%s\tdecode\t%.02f GB/sec, fastest\t%0.3f ms\n", name,
-        bytes_to_gb(b->encsz) / fastest, fastest * 1000.0);
+	printf("%s\tdecode\t%.02f MB/sec, fastest\t%0.3f ms\n", name,
+        bytes_to_mb(b->encsz) / fastest, fastest * 1000.0);
 }
 
 static void
@@ -312,6 +308,8 @@ err0:
     if (errmsg)
 		fputs(errmsg, stderr);
 
+#if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
     system("pause");
+#endif
 	return ret;
 }

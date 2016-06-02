@@ -35,7 +35,7 @@ static const unsigned char base64_dec_table[] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
-ptrdiff_t base64_encode_fast_alloc(const char * src, size_t src_len, char ** dest)
+ssize_t base64_encode_fast_alloc(const char * src, size_t src_len, char ** dest)
 {
 	size_t alloc_size = ((src_len + 2) / 3) * 4 + 1;
     if (dest == NULL)
@@ -125,14 +125,14 @@ ptrdiff_t base64_encode_fast_alloc(const char * src, size_t src_len, char ** des
     }
 
     *out = '\0';
-	ptrdiff_t encoded_size = out - encoded;
-    assert(encoded_size < (ptrdiff_t)alloc_size);
+	ssize_t encoded_size = out - encoded;
+    assert(encoded_size < (ssize_t)alloc_size);
     if (dest != NULL)
         *dest = encoded;
 	return encoded_size;
 }
 
-ptrdiff_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
+ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
 {
 	size_t alloc_size = ((src_len + 2) / 3) * 4 + 1;
     if (dest == NULL) {
@@ -228,13 +228,13 @@ ptrdiff_t base64_encode_fast(const char * src, size_t src_len, char * dest, size
     }
 
     *out = '\0';
-	ptrdiff_t encoded_size = out - (unsigned char *)dest;
-    assert(encoded_size < (ptrdiff_t)alloc_size);
-    assert(encoded_size <= (ptrdiff_t)dest_len);
+	ssize_t encoded_size = out - (unsigned char *)dest;
+    assert(encoded_size < (ssize_t)alloc_size);
+    assert(encoded_size <= (ssize_t)dest_len);
 	return encoded_size;
 }
 
-ptrdiff_t base64_decode_fast_alloc(const char * src, size_t src_len, char ** dest)
+ssize_t base64_decode_fast_alloc(const char * src, size_t src_len, char ** dest)
 {
 	size_t alloc_size = ((src_len + 3) / 4) * 3;
     if (dest == NULL)
@@ -327,8 +327,8 @@ ptrdiff_t base64_decode_fast_alloc(const char * src, size_t src_len, char ** des
 		}
 	}
 
-	ptrdiff_t decoded_size = out - decoded;
-	assert(decoded_size <= (ptrdiff_t)alloc_size);
+	ssize_t decoded_size = out - decoded;
+	assert(decoded_size <= (ssize_t)alloc_size);
     if (dest != NULL)
         *dest = decoded;
 	return decoded_size;
@@ -342,7 +342,7 @@ err_exit:
 	return -1;
 }
 
-ptrdiff_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
+ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
 {
 	size_t alloc_size = ((src_len + 3) / 4) * 3;
     if (dest == NULL) {
@@ -432,9 +432,9 @@ ptrdiff_t base64_decode_fast(const char * src, size_t src_len, char * dest, size
 		}
 	}
 
-	ptrdiff_t decoded_size = out - (unsigned char *)dest;
-	assert(decoded_size <= (ptrdiff_t)alloc_size);
-    assert(decoded_size <= (ptrdiff_t)dest_len);
+	ssize_t decoded_size = out - (unsigned char *)dest;
+	assert(decoded_size <= (ssize_t)alloc_size);
+    assert(decoded_size <= (ssize_t)dest_len);
 	return decoded_size;
 err_exit:
     if (dest_len > 0)
