@@ -74,8 +74,8 @@ assert_roundtrip(const char *src)
 
 	// Encode the input into global buffer:
     outlen = sizeof(out) - 1;
-	encode_size = base64_encode_fast(src, srclen, out, &outlen);
-    enclen = encode_size;
+	encode_size = base64_encode_fast(src, srclen, out, outlen);
+    outlen = encode_size;
 
 	// Decode the global buffer into local temp buffer:
     tmplen = sizeof(tmp) - 1;
@@ -83,7 +83,7 @@ assert_roundtrip(const char *src)
 		printf("FAIL: decoding of '%s': decoding error\n", out);
 		return true;
 	}
-    temlen = decode_size;
+    tmplen = decode_size;
 
 	// Check that 'src' is identical to 'tmp':
 	if (srclen != tmplen) {
@@ -120,7 +120,7 @@ test_char_table()
 	for (int i = 0; i < 256; i++) {
 
 		size_t chrlen = 256 - i;
-        enclen = sizeof(env) - 1;
+        enclen = sizeof(enc) - 1;
 		encode_size = base64_encode_fast(&chr[i], chrlen, enc, enclen);
         enclen = encode_size;
 
@@ -157,7 +157,6 @@ test_streaming()
 	char ref[400], enc[400];
 	size_t reflen;
     ssize_t encode_size, decode_size;
-	struct base64_state state;
 
 	// Fill array with all characters 0..255:
 	for (int i = 0; i < 256; i++)
