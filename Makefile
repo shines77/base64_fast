@@ -1,4 +1,4 @@
-CFLAGS += -std=c99 -O3 -Wall -Wextra -pedantic
+CFLAGS += -std=c99 -O3 -Wall -Wextra -pedantic -DNDEBUG
 
 # Set OBJCOPY if not defined by environment:
 OBJCOPY ?= objcopy
@@ -29,4 +29,4 @@ analyze: clean
 	scan-build --use-analyzer=`which clang` --status-bugs make
 
 clean:
-	rm -f bin/base64 src/base64.o src/base64_fast.o test/benchmark.o $(OBJS)
+	rm -f bin/base64 test/benchmark src/base64.o src/base64_fast.o test/benchmark.o $(OBJS)
