@@ -8,12 +8,12 @@ OBJS = \
 
 .PHONY: all analyze clean
 
-all: bin/base64 lib/libbase64.o
+all: bin/base64 src/base64_fast.o
 
-bin/base64: src/base64.o lib/libbase64.o
+bin/base64: src/base64.o src/base64_fast.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-lib/libbase64.o: $(OBJS)
+src/base64_fast.o: $(OBJS)
 	$(LD) --relocatable -o $@ $^
 	$(OBJCOPY) --keep-global-symbols=lib/exports.txt $@
 
@@ -24,4 +24,4 @@ analyze: clean
 	scan-build --use-analyzer=`which clang` --status-bugs make
 
 clean:
-	rm -f bin/base64 src/base64.o lib/libbase64.o $(OBJS)
+	rm -f bin/base64 src/base64.o src/base64_fast.o $(OBJS)
