@@ -263,6 +263,9 @@ codec_bench(struct buffers *b, const struct bufsize *bs)
 
 int main(int argc, char * argv[])
 {
+    (void)argc;
+    (void)argv;
+
 	int ret = 0;
 	char *errmsg = NULL;
 	struct buffers b;
