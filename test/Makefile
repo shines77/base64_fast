@@ -8,10 +8,10 @@ test: clean test_base64 benchmark
 	./test_base64
 	./benchmark
 
-test_base64: test_base64.o ../src/base64_fast.o
+test_base64: test_base64.c ../src/base64_fast.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-benchmark: benchmark.o ../src/base64_fast.o
+benchmark: benchmark.c ../src/base64_fast.o
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
 
 ../%:
