@@ -14,7 +14,7 @@ assert_enc(const char *src, const char *dest)
 {
 	size_t srclen = strlen(src);
 	size_t destlen = strlen(dest);
-    sszie_t encode_size;
+    ssize_t encode_size;
 
     outlen = sizeof(out) - 1; 
 	encode_size = base64_encode_fast(src, srclen, out, outlen);
@@ -40,7 +40,7 @@ assert_dec(const char *src, const char *dest)
 {
 	size_t srclen = strlen(src);
 	size_t destlen = strlen(dest);
-    sszie_t decode_size;
+    ssize_t decode_size;
 
     outlen = sizeof(out) - 1;
 	if ((decode_size = base64_decode_fast(src, srclen, out, outlen)) < 0) {
@@ -70,7 +70,7 @@ assert_roundtrip(const char *src)
 	char tmp[1500];
 	size_t tmplen;
 	size_t srclen = strlen(src);
-    sszie_t encode_size, decode_size;
+    ssize_t encode_size, decode_size;
 
 	// Encode the input into global buffer:
     outlen = sizeof(out) - 1;
@@ -110,7 +110,7 @@ test_char_table()
 	char chr[256];
 	char enc[400], dec[400];
 	size_t enclen, declen;
-    sszie_t encode_size, decode_size;
+    ssize_t encode_size, decode_size;
 
 	// Fill array with all characters 0..255:
 	for (int i = 0; i < 256; i++)
