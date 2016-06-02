@@ -128,7 +128,7 @@ ssize_t base64_encode_fast_alloc(const char * src, size_t src_len, char ** dest)
 	ssize_t encoded_size = out - encoded;
     assert(encoded_size < (ssize_t)alloc_size);
     if (dest != NULL)
-        *dest = encoded;
+        *dest = (char *)encoded;
 	return encoded_size;
 }
 
@@ -136,7 +136,7 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
 {
 	size_t alloc_size = ((src_len + 2) / 3) * 4 + 1;
     if (dest == NULL) {
-        return (dest_len == 0) ? alloc_size : -1;
+        return (dest_len == 0) ? (ssize_t)alloc_size : -1;
     }
 
 	// Get the length of the integer multiple of 3 is obtained.
@@ -246,8 +246,6 @@ ssize_t base64_decode_fast_alloc(const char * src, size_t src_len, char ** dest)
 
 	// Get the length of the integer multiple of 4 is obtained.
 	size_t multiply4_len = src_len & (~(size_t)(4 - 1));
-	// The remain bytes of src length.
-	size_t remain_len = src_len - multiply4_len;
 
     const unsigned char * cur = (const unsigned char *)src;
     const unsigned char * end = cur + multiply4_len;
@@ -330,7 +328,7 @@ ssize_t base64_decode_fast_alloc(const char * src, size_t src_len, char ** dest)
 	ssize_t decoded_size = out - decoded;
 	assert(decoded_size <= (ssize_t)alloc_size);
     if (dest != NULL)
-        *dest = decoded;
+        *dest = (char *)decoded;
 	return decoded_size;
 err_exit:
 	if (decoded)
@@ -338,7 +336,7 @@ err_exit:
     decoded = (unsigned char *)malloc(1);
     *decoded = '\0';
     if (dest != NULL)
-        *dest = decoded;
+        *dest = (char *)decoded;
 	return -1;
 }
 
@@ -346,13 +344,11 @@ ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t
 {
 	size_t alloc_size = ((src_len + 3) / 4) * 3;
     if (dest == NULL) {
-        return (dest_len == 0) ? alloc_size : -1;
+        return (dest_len == 0) ? (ssize_t)alloc_size : -1;
     }
 
 	// Get the length of the integer multiple of 4 is obtained.
 	size_t multiply4_len = src_len & (~(size_t)(4 - 1));
-	// The remain bytes of src length.
-	size_t remain_len = src_len - multiply4_len;
 
     const unsigned char * cur = (const unsigned char *)src;
     const unsigned char * end = cur + multiply4_len;
