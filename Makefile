@@ -3,8 +3,7 @@ CFLAGS += -std=c99 -O3 -Wall -Wextra -pedantic
 # Set OBJCOPY if not defined by environment:
 OBJCOPY ?= objcopy
 
-OBJS = \
-  src/base64_fast.o
+OBJS =
 
 .PHONY: all analyze clean
 
