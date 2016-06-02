@@ -12,9 +12,9 @@ all: bin/base64 src/base64_fast.o
 bin/base64: src/base64.o src/base64_fast.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-src/base64_fast.o: $(OBJS)
-	$(LD) --relocatable -o $@ $^
-	$(OBJCOPY) --keep-global-symbols=lib/exports.txt $@
+# src/base64_fast.o: $(OBJS)
+#	$(LD) --relocatable -o $@ $^
+#	$(OBJCOPY) --keep-global-symbols=lib/exports.txt $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
