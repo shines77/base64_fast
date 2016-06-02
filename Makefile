@@ -4,8 +4,7 @@ CFLAGS += -std=c99 -O3 -Wall -Wextra -pedantic
 OBJCOPY ?= objcopy
 
 OBJS = \
-  src/lib.o \
-  src/codec_plain.o
+  src/base64_fast.o
 
 .PHONY: all analyze clean
 

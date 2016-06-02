@@ -1,77 +1,89 @@
-#include <stdbool.h>
-#include <string.h>
+
 #include <stdio.h>
-#include "../include/libbase64.h"
-#include "codec_supported.h"
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "../src/base64_fast.h"
 #include "moby_dick.h"
 
 static char out[2000];
 static size_t outlen;
 
 static bool
-assert_enc (int flags, const char *src, const char *dst)
+assert_enc(const char *src, const char *dest)
 {
 	size_t srclen = strlen(src);
-	size_t dstlen = strlen(dst);
+	size_t destlen = strlen(dest);
+    sszie_t encode_size;
 
-	base64_encode(src, srclen, out, &outlen, flags);
+    outlen = sizeof(out) - 1; 
+	encode_size = base64_encode_fast(src, srclen, out, outlen);
+    outlen = encode_size;
 
-	if (outlen != dstlen) {
+	if (outlen != destlen) {
 		printf("FAIL: encoding of '%s': length expected %lu, got %lu\n", src,
-			(unsigned long)dstlen,
+			(unsigned long)destlen,
 			(unsigned long)outlen
 		);
 		return true;
 	}
-	if (strncmp(dst, out, outlen) != 0) {
+	if (strncmp(dest, out, outlen) != 0) {
 		out[outlen] = '\0';
-		printf("FAIL: encoding of '%s': expected output '%s', got '%s'\n", src, dst, out);
+		printf("FAIL: encoding of '%s': expected output '%s', got '%s'\n", src, dest, out);
 		return true;
 	}
 	return false;
 }
 
 static bool
-assert_dec (int flags, const char *src, const char *dst)
+assert_dec(const char *src, const char *dest)
 {
 	size_t srclen = strlen(src);
-	size_t dstlen = strlen(dst);
+	size_t destlen = strlen(dest);
+    sszie_t decode_size;
 
-	if (!base64_decode(src, srclen, out, &outlen, flags)) {
+    outlen = sizeof(out) - 1;
+	if ((decode_size = base64_decode_fast(src, srclen, out, outlen)) < 0) {
 		printf("FAIL: decoding of '%s': decoding error\n", src);
 		return true;
 	}
-	if (outlen != dstlen) {
+    outlen = decode_size;
+	if (outlen != destlen) {
 		printf("FAIL: encoding of '%s': "
 			"length expected %lu, got %lu\n", src,
-			(unsigned long)dstlen,
+			(unsigned long)destlen,
 			(unsigned long)outlen
 		);
 		return true;
 	}
-	if (strncmp(dst, out, outlen) != 0) {
+	if (strncmp(dest, out, outlen) != 0) {
 		out[outlen] = '\0';
-		printf("FAIL: decoding of '%s': expected output '%s', got '%s'\n", src, dst, out);
+		printf("FAIL: decoding of '%s': expected output '%s', got '%s'\n", src, dest, out);
 		return true;
 	}
 	return false;
 }
 
 static int
-assert_roundtrip (int flags, const char *src)
+assert_roundtrip(const char *src)
 {
 	char tmp[1500];
 	size_t tmplen;
 	size_t srclen = strlen(src);
+    sszie_t encode_size, decode_size;
 
 	// Encode the input into global buffer:
-	base64_encode(src, srclen, out, &outlen, flags);
+    outlen = sizeof(out) - 1;
+	encode_size = base64_encode_fast(src, srclen, out, &outlen);
+    enclen = encode_size;
 
 	// Decode the global buffer into local temp buffer:
-	if (!base64_decode(out, outlen, tmp, &tmplen, flags)) {
+    tmplen = sizeof(tmp) - 1;
+	if ((decode_size = base64_decode_fast(out, outlen, tmp, tmplen)) < 0) {
 		printf("FAIL: decoding of '%s': decoding error\n", out);
 		return true;
 	}
+    temlen = decode_size;
 
 	// Check that 'src' is identical to 'tmp':
 	if (srclen != tmplen) {
@@ -92,12 +104,13 @@ assert_roundtrip (int flags, const char *src)
 }
 
 static int
-test_char_table (int flags)
+test_char_table()
 {
 	bool fail = false;
 	char chr[256];
 	char enc[400], dec[400];
 	size_t enclen, declen;
+    sszie_t encode_size, decode_size;
 
 	// Fill array with all characters 0..255:
 	for (int i = 0; i < 256; i++)
@@ -107,14 +120,17 @@ test_char_table (int flags)
 	for (int i = 0; i < 256; i++) {
 
 		size_t chrlen = 256 - i;
+        enclen = sizeof(env) - 1;
+		encode_size = base64_encode_fast(&chr[i], chrlen, enc, enclen);
+        enclen = encode_size;
 
-		base64_encode(&chr[i], chrlen, enc, &enclen, BASE64_FORCE_PLAIN);
-
-		if (!base64_decode(enc, enclen, dec, &declen, flags)) {
+        declen = sizeof(dec) - 1;
+		if ((decode_size = base64_decode_fast(enc, enclen, dec, declen)) < 0) {
 			printf("FAIL: decoding @ %d: decoding error\n", i);
 			fail = true;
 			continue;
 		}
+        declen = decode_size;
 		if (declen != chrlen) {
 			printf("FAIL: roundtrip @ %d: "
 				"length expected %lu, got %lu\n", i,
@@ -134,12 +150,13 @@ test_char_table (int flags)
 }
 
 static int
-test_streaming (int flags)
+test_streaming()
 {
 	bool fail = false;
 	char chr[256];
 	char ref[400], enc[400];
 	size_t reflen;
+    ssize_t encode_size, decode_size;
 	struct base64_state state;
 
 	// Fill array with all characters 0..255:
@@ -147,7 +164,9 @@ test_streaming (int flags)
 		chr[i] = (unsigned char)i;
 
 	// Create reference base64 encoding:
-	base64_encode(chr, 256, ref, &reflen, BASE64_FORCE_PLAIN);
+    reflen = sizeof(ref) - 1;
+	encode_size = base64_encode_fast(chr, 256, ref, reflen);
+    reflen = encode_size;
 
 	// Encode the table with various block sizes and compare to reference:
 	for (size_t bs = 1; bs < 255; bs++)
@@ -156,18 +175,19 @@ test_streaming (int flags)
 		size_t partlen = 0;
 		size_t enclen  = 0;
 
-		base64_stream_encode_init(&state, flags);
 		memset(enc, 0, 400);
 		for (;;) {
-			base64_stream_encode(&state, &chr[inpos], (inpos + bs > 256) ? 256 - inpos : bs, &enc[enclen], &partlen);
-			enclen += partlen;
-			if (inpos + bs > 256) {
-				break;
-			}
-			inpos += bs;
+            partlen = (sizeof(enc) - 1) - enclen;
+			encode_size = base64_encode_fast(&chr[inpos], (inpos + bs > 256) ? 256 - inpos : bs, &enc[enclen], partlen);
+            if (encode_size > 0) {
+                enclen += encode_size;
+                if (inpos + bs > 256) {
+                    break;
+                }
+                inpos += bs;
+            }
+            else break;
 		}
-		base64_stream_encode_final(&state, &enc[enclen], &partlen);
-		enclen += partlen;
 
 		if (enclen != reflen) {
 			printf("FAIL: stream encoding gave incorrect size: "
@@ -193,11 +213,17 @@ test_streaming (int flags)
 		size_t partlen = 0;
 		size_t enclen  = 0;
 
-		base64_stream_decode_init(&state, flags);
 		memset(enc, 0, 400);
-		while (base64_stream_decode(&state, &ref[inpos], (inpos + bs > reflen) ? reflen - inpos : bs, &enc[enclen], &partlen)) {
-			enclen += partlen;
-			inpos += bs;
+        decode_size = 1;
+		while (decode_size > 0) {
+            if (enclen > sizeof(enc) - 1
+                break;
+            partlen = (sizeof(enc) - 1) - enclen;
+            decode_size = base64_decode_fast(&ref[inpos], (inpos + bs > reflen) ? reflen - inpos : bs, &enc[enclen], partlen);
+            if (decode_size > 0) {
+    			enclen += decode_size;
+	    		inpos += bs;
+            }
 		}
 		if (enclen != 256) {
 			printf("FAIL: stream decoding gave incorrect size: "
@@ -218,17 +244,11 @@ test_streaming (int flags)
 }
 
 static int
-test_one_codec (const char *codec, int flags)
+test_one_codec()
 {
 	bool fail = false;
 
-	printf("Codec %s:\n", codec);
-
-	// Skip if this codec is not supported:
-	if (!codec_supported(flags)) {
-		puts("  skipping");
-		return false;
-	}
+	printf("Codec %s:\n", "plain");
 
 	// Test vectors:
 	struct {
@@ -253,18 +273,18 @@ test_one_codec (const char *codec, int flags)
 	for (size_t i = 0; i < sizeof(vec) / sizeof(vec[0]); i++) {
 
 		// Encode plain string, check against output:
-		fail |= assert_enc(flags, vec[i].in, vec[i].out);
+		fail |= assert_enc(vec[i].in, vec[i].out);
 
 		// Decode the output string, check if we get the input:
-		fail |= assert_dec(flags, vec[i].out, vec[i].in);
+		fail |= assert_dec(vec[i].out, vec[i].in);
 
 		// Do a roundtrip on the inputs and the outputs:
-		fail |= assert_roundtrip(flags, vec[i].in);
-		fail |= assert_roundtrip(flags, vec[i].out);
+		fail |= assert_roundtrip(vec[i].in);
+		fail |= assert_roundtrip(vec[i].out);
 	}
 
-	fail |= test_char_table(flags);
-	fail |= test_streaming(flags);
+	fail |= test_char_table();
+	fail |= test_streaming();
 
 	if (!fail)
 		puts("  all tests passed.");
@@ -273,19 +293,12 @@ test_one_codec (const char *codec, int flags)
 }
 
 int
-main ()
+main()
 {
 	bool fail = false;
 
-	// Loop over all codecs:
-	for (size_t i = 0; codecs[i]; i++) {
-
-		// Flags to invoke this codec:
-		int codec_flags = (1 << i);
-
-		// Test this codec, merge the results:
-		fail |= test_one_codec(codecs[i], codec_flags);
-	}
+	// Test this codec, merge the results:
+    fail |= test_one_codec();
 
 	return (fail) ? 1 : 0;
 }
