@@ -153,11 +153,11 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
         remain_len = 0;
     }
 
-    const unsigned char * cur = (const unsigned char *)src;
-    const unsigned char * end = cur + max_src_len;
-	unsigned char * out = (unsigned char *)dest;
-
 #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+    register const unsigned char * cur = (const unsigned char *)src;
+    register const unsigned char * end = cur + max_src_len;
+	register unsigned char * out = (unsigned char *)dest;
+
 	while (cur < end) {
 		register unsigned int a, b, c;
 		a = (unsigned int)(*(cur + 0));
@@ -167,10 +167,25 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
 		*(out + 1) = base64_enc_chars[((a << 4) & 0x30U) | (b >> 4)];
 		*(out + 2) = base64_enc_chars[((b << 2) & 0x3CU) | (c >> 6)];
         *(out + 3) = base64_enc_chars[(c & 0x3FU)];
+        cur += 3;
         out += 4;
+#if 0
+        //register unsigned int a2, b2, c2;
+		a = (unsigned int)(*(cur + 0));
+		b = (unsigned int)(*(cur + 1));
+		c = (unsigned int)(*(cur + 2));
+		*(out + 0) = base64_enc_chars[(a >> 2)];
+		*(out + 1) = base64_enc_chars[((a << 4) & 0x30U) | (b >> 4)];
+		*(out + 2) = base64_enc_chars[((b << 2) & 0x3CU) | (c >> 6)];
+        *(out + 3) = base64_enc_chars[(c & 0x3FU)];
 		cur += 3;
+        out += 4;
+#endif
 	}
 #else
+    register const unsigned char * cur = (const unsigned char *)src;
+    const unsigned char *          end = cur + max_src_len;
+	register unsigned char * out = (unsigned char *)dest;
   #if 0
     if (((uint32_t)(size_t)(dest) & 0x03U) == 0) {
         // The src address is align to 4 bytes.
