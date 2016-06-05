@@ -16,11 +16,14 @@ extern "C" {
 
 typedef ptrdiff_t ssize_t;
 
-ssize_t base64_encode_fast_alloc(const char * src, size_t src_len, char ** dest);
-ssize_t base64_decode_fast_alloc(const char * src, size_t src_len, char ** dest);
+ssize_t base64_encode(const char * src, size_t src_len, char * dest, size_t dest_len);
+ssize_t base64_decode(const char * src, size_t src_len, char * dest, size_t dest_len);
 
 ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t dest_len);
 ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t dest_len);
+
+ssize_t base64_encode_alloc(const char * src, size_t src_len, char ** dest);
+ssize_t base64_decode_alloc(const char * src, size_t src_len, char ** dest);
 
 #ifdef __cplusplus
 }

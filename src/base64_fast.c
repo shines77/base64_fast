@@ -35,101 +35,14 @@ static const unsigned char base64_dec_table[] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
-ssize_t base64_encode_fast_alloc(const char * src, size_t src_len, char ** dest)
+ssize_t base64_encode(const char * src, size_t src_len, char * dest, size_t dest_len)
 {
-	size_t alloc_size = ((src_len + 2) / 3) * 4 + 1;
-    if (dest == NULL)
-        return alloc_size;
+    return 0;
+}
 
-    unsigned char * encoded = (unsigned char *)malloc(alloc_size * sizeof(unsigned char));
-    if (encoded == NULL)
-        return -1;
-
-	// Get the length of the integer multiple of 3 is obtained.
-	size_t multiply3_len = (src_len / 3) * 3;
-	// The remain bytes of src length.
-	size_t remain_len = src_len - multiply3_len;
-
-    const unsigned char * cur = (const unsigned char *)src;
-    const unsigned char * end = cur + multiply3_len;
-	unsigned char * out = (unsigned char *)encoded;
-
-#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
-	while (cur < end) {
-		register unsigned int a, b, c;
-		a = (unsigned int)(*(cur + 0));
-		b = (unsigned int)(*(cur + 1));
-		c = (unsigned int)(*(cur + 2));
-		*(out + 0) = base64_enc_chars[(a >> 2)];
-		*(out + 1) = base64_enc_chars[((a << 4) & 0x30) | (b >> 4)];
-		*(out + 2) = base64_enc_chars[((b << 2) & 0x3C) | (c >> 6)];
-        *(out + 3) = base64_enc_chars[(c & 0x3F)];
-        out += 4;
-		cur += 3;
-	}
-#else
-  #if 0
-    if (((uint32_t)(size_t)(dest) & 0x03U) == 0) {
-        // The src address is align to 4 bytes.
-        uint32_t * dest32 = (uint32_t *)dest;
-	    while (cur < end) {
-		    register unsigned int a, b, c;
-		    unsigned int x, y, z, l;
-		    a = (unsigned int)(*(cur + 0));
-		    b = (unsigned int)(*(cur + 1));
-		    c = (unsigned int)(*(cur + 2));
-            x = (a >> 2);
-            y = ((a << 4) & 0x30) | (b >> 4);
-            z = ((b << 2) & 0x3C) | (c >> 6);
-            l = (c & 0x3F);
-            *dest32++ = ((unsigned int)(base64_enc_chars[l]) << 24) | ((unsigned int)(base64_enc_chars[z]) << 16)
-                      | ((unsigned int)(base64_enc_chars[y]) <<  8) | (unsigned int)(base64_enc_chars[x]);
-		    cur += 3;
-	    }
-        dest = (unsigned char *)dest32;
-    } else
-  #endif
-    {
-        // The src address is not align to 4 bytes.
-	    while (cur < end) {
-		    register unsigned int a, b, c;
-		    a = (unsigned int)(*(cur + 0));
-		    b = (unsigned int)(*(cur + 1));
-		    c = (unsigned int)(*(cur + 2));
-		    *(out + 0) = base64_enc_chars[(a >> 2)];
-		    *(out + 1) = base64_enc_chars[((a << 4) & 0x30) | (b >> 4)];
-		    *(out + 2) = base64_enc_chars[((b << 2) & 0x3C) | (c >> 6)];
-            *(out + 3) = base64_enc_chars[(c & 0x3F)];
-            out += 4;
-		    cur += 3;
-	    }
-    }
-#endif
-
-    if (remain_len == 1) {
-        register unsigned int a;
-		a = (unsigned int)(*(cur + 0));
-        *out++ = base64_enc_chars[(a >> 2)];
-        *out++ = base64_enc_chars[(a << 4) & 0x3F];
-        *out++ = '=';
-        *out++ = '=';
-    }
-    else if (remain_len == 2) {
-        register unsigned int a, b;
-        a = (unsigned int)(*(cur + 0));
-        b = (unsigned int)(*(cur + 1));
-        *out++ = base64_enc_chars[(a >> 2)];
-        *out++ = base64_enc_chars[((a << 4) & 0x30) | (b >> 4)];
-        *out++ = base64_enc_chars[(b << 2) & 0x3C];
-        *out++ = '=';
-    }
-
-    *out = '\0';
-	ssize_t encoded_size = out - encoded;
-    assert(encoded_size < (ssize_t)alloc_size);
-    if (dest != NULL)
-        *dest = (char *)encoded;
-	return encoded_size;
+ssize_t base64_decode(const char * src, size_t src_len, char * dest, size_t dest_len)
+{
+    return 0;
 }
 
 ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
@@ -247,112 +160,6 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
     assert(encoded_size < (ssize_t)alloc_size);
     assert(encoded_size <= (ssize_t)dest_len);
 	return encoded_size;
-}
-
-ssize_t base64_decode_fast_alloc(const char * src, size_t src_len, char ** dest)
-{
-	size_t alloc_size = ((src_len + 3) / 4) * 3;
-    if (dest == NULL)
-        return alloc_size;
-
-    unsigned char * decoded = (unsigned char *)malloc(alloc_size * sizeof(unsigned char));
-    if (decoded == NULL)
-        return -1;
-
-	// Get the length of the integer multiple of 4 is obtained.
-	size_t multiply4_len = src_len & (~(size_t)(4 - 1));
-
-    const unsigned char * cur = (const unsigned char *)src;
-    const unsigned char * end = cur + multiply4_len;
-	unsigned char * out = (unsigned char *)decoded;
-
-#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
-    while (cur < end) {
-        register unsigned char a, b, c, d;
-        register uint32_t value;
-        a  = base64_dec_table[*(cur + 0)];
-        b  = base64_dec_table[*(cur + 1)];
-        c  = base64_dec_table[*(cur + 2)];
-        d  = base64_dec_table[*(cur + 3)];
-        value = (d << 24) | (c << 16) | (b << 8) | a;
-        if ((value & 0x80808080UL) != 0) {
-            // Found '\0', '=' or another chars
-            break;
-        }
-        *(out + 0) = (a << 2) | ((b & 0x30) >> 4);
-        *(out + 1) = (b << 4) | ((c & 0x3C) >> 2);
-        *(out + 2) = ((c & 0x03) << 6) | (d & 0x3F);
-        cur += 4;
-        out += 3;
-    }
-#else
-    while (cur < end) {
-        register uint32_t a, b, c, d;
-        uint32_t value;
-        a  = base64_dec_table[*(cur + 0)];
-        b  = base64_dec_table[*(cur + 1)];
-        c  = base64_dec_table[*(cur + 2)];
-        d  = base64_dec_table[*(cur + 3)];
-        value = (d << 24) | (c << 16) | (b << 8) | a;
-        *(out + 0) = (a << 2) | ((b & 0x30) >> 4);
-        *(out + 1) = (b << 4) | ((c & 0x3C) >> 2);
-        *(out + 2) = ((c & 0x03) << 6) | (d & 0x3F);
-        if ((value & 0x80808080UL) != 0) {
-            // Found '\0', '=' or another chars
-            break;
-        }
-        cur += 4;
-        out += 3;
-    }
-#endif
-
-	/* Each cycle of the loop handles a quantum of 4 input bytes. For the last
-	   quantum this may decode to 1, 2, or 3 output bytes. */
-
-	int x, y;
-	while ((x = (*cur++)) != 0) {
-		if (x > 127 || (x = base64_dec_table[x]) == 255)
-			goto err_exit;
-		if ((y = (*cur++)) == 0 || (y = base64_dec_table[y]) == 255)
-			goto err_exit;
-		*out++ = (x << 2) | (y >> 4);
-
-		if ((x = (*cur++)) == '=')
-		{
-			if (*cur++ != '=' || *cur != 0)
-				goto err_exit;
-		}
-		else
-		{
-			if (x > 127 || (x = base64_dec_table[x]) == 255)
-				return -1;
-			*out++ = (y << 4) | (x >> 2);
-			if ((y = (*cur++)) == '=') {
-				if (*cur != 0)
-					goto err_exit;
-			}
-			else
-			{
-				if (y > 127 || (y = base64_dec_table[y]) == 255)
-					return -1;
-				*out++ = (x << 6) | y;
-			}
-		}
-	}
-
-	ssize_t decoded_size = out - decoded;
-	assert(decoded_size <= (ssize_t)alloc_size);
-    if (dest != NULL)
-        *dest = (char *)decoded;
-	return decoded_size;
-err_exit:
-	if (decoded)
-        free(decoded);
-    decoded = (unsigned char *)malloc(1);
-    *decoded = '\0';
-    if (dest != NULL)
-        *dest = (char *)decoded;
-	return -1;
 }
 
 ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
@@ -604,5 +411,208 @@ ssize_t base64_decode_fast2(const char * src, size_t src_len, char * dest, size_
 err_exit:
     if (dest_len > 0)
         *dest = '\0';
+	return -1;
+}
+
+ssize_t base64_encode_alloc(const char * src, size_t src_len, char ** dest)
+{
+	size_t alloc_size = ((src_len + 2) / 3) * 4 + 1;
+    if (dest == NULL)
+        return alloc_size;
+
+    unsigned char * encoded = (unsigned char *)malloc(alloc_size * sizeof(unsigned char));
+    if (encoded == NULL)
+        return -1;
+
+	// Get the length of the integer multiple of 3 is obtained.
+	size_t multiply3_len = (src_len / 3) * 3;
+	// The remain bytes of src length.
+	size_t remain_len = src_len - multiply3_len;
+
+    const unsigned char * cur = (const unsigned char *)src;
+    const unsigned char * end = cur + multiply3_len;
+	unsigned char * out = (unsigned char *)encoded;
+
+#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+	while (cur < end) {
+		register unsigned int a, b, c;
+		a = (unsigned int)(*(cur + 0));
+		b = (unsigned int)(*(cur + 1));
+		c = (unsigned int)(*(cur + 2));
+		*(out + 0) = base64_enc_chars[(a >> 2)];
+		*(out + 1) = base64_enc_chars[((a << 4) & 0x30) | (b >> 4)];
+		*(out + 2) = base64_enc_chars[((b << 2) & 0x3C) | (c >> 6)];
+        *(out + 3) = base64_enc_chars[(c & 0x3F)];
+        out += 4;
+		cur += 3;
+	}
+#else
+  #if 0
+    if (((uint32_t)(size_t)(dest) & 0x03U) == 0) {
+        // The src address is align to 4 bytes.
+        uint32_t * dest32 = (uint32_t *)dest;
+	    while (cur < end) {
+		    register unsigned int a, b, c;
+		    unsigned int x, y, z, l;
+		    a = (unsigned int)(*(cur + 0));
+		    b = (unsigned int)(*(cur + 1));
+		    c = (unsigned int)(*(cur + 2));
+            x = (a >> 2);
+            y = ((a << 4) & 0x30) | (b >> 4);
+            z = ((b << 2) & 0x3C) | (c >> 6);
+            l = (c & 0x3F);
+            *dest32++ = ((unsigned int)(base64_enc_chars[l]) << 24) | ((unsigned int)(base64_enc_chars[z]) << 16)
+                      | ((unsigned int)(base64_enc_chars[y]) <<  8) | (unsigned int)(base64_enc_chars[x]);
+		    cur += 3;
+	    }
+        dest = (unsigned char *)dest32;
+    } else
+  #endif
+    {
+        // The src address is not align to 4 bytes.
+	    while (cur < end) {
+		    register unsigned int a, b, c;
+		    a = (unsigned int)(*(cur + 0));
+		    b = (unsigned int)(*(cur + 1));
+		    c = (unsigned int)(*(cur + 2));
+		    *(out + 0) = base64_enc_chars[(a >> 2)];
+		    *(out + 1) = base64_enc_chars[((a << 4) & 0x30) | (b >> 4)];
+		    *(out + 2) = base64_enc_chars[((b << 2) & 0x3C) | (c >> 6)];
+            *(out + 3) = base64_enc_chars[(c & 0x3F)];
+            out += 4;
+		    cur += 3;
+	    }
+    }
+#endif
+
+    if (remain_len == 1) {
+        register unsigned int a;
+		a = (unsigned int)(*(cur + 0));
+        *out++ = base64_enc_chars[(a >> 2)];
+        *out++ = base64_enc_chars[(a << 4) & 0x3F];
+        *out++ = '=';
+        *out++ = '=';
+    }
+    else if (remain_len == 2) {
+        register unsigned int a, b;
+        a = (unsigned int)(*(cur + 0));
+        b = (unsigned int)(*(cur + 1));
+        *out++ = base64_enc_chars[(a >> 2)];
+        *out++ = base64_enc_chars[((a << 4) & 0x30) | (b >> 4)];
+        *out++ = base64_enc_chars[(b << 2) & 0x3C];
+        *out++ = '=';
+    }
+
+    *out = '\0';
+	ssize_t encoded_size = out - encoded;
+    assert(encoded_size < (ssize_t)alloc_size);
+    if (dest != NULL)
+        *dest = (char *)encoded;
+	return encoded_size;
+}
+
+ssize_t base64_decode_alloc(const char * src, size_t src_len, char ** dest)
+{
+	size_t alloc_size = ((src_len + 3) / 4) * 3;
+    if (dest == NULL)
+        return alloc_size;
+
+    unsigned char * decoded = (unsigned char *)malloc(alloc_size * sizeof(unsigned char));
+    if (decoded == NULL)
+        return -1;
+
+	// Get the length of the integer multiple of 4 is obtained.
+	size_t multiply4_len = src_len & (~(size_t)(4 - 1));
+
+    const unsigned char * cur = (const unsigned char *)src;
+    const unsigned char * end = cur + multiply4_len;
+	unsigned char * out = (unsigned char *)decoded;
+
+#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+    while (cur < end) {
+        register unsigned char a, b, c, d;
+        register uint32_t value;
+        a  = base64_dec_table[*(cur + 0)];
+        b  = base64_dec_table[*(cur + 1)];
+        c  = base64_dec_table[*(cur + 2)];
+        d  = base64_dec_table[*(cur + 3)];
+        value = (d << 24) | (c << 16) | (b << 8) | a;
+        if ((value & 0x80808080UL) != 0) {
+            // Found '\0', '=' or another chars
+            break;
+        }
+        *(out + 0) = (a << 2) | ((b & 0x30) >> 4);
+        *(out + 1) = (b << 4) | ((c & 0x3C) >> 2);
+        *(out + 2) = ((c & 0x03) << 6) | (d & 0x3F);
+        cur += 4;
+        out += 3;
+    }
+#else
+    while (cur < end) {
+        register uint32_t a, b, c, d;
+        uint32_t value;
+        a  = base64_dec_table[*(cur + 0)];
+        b  = base64_dec_table[*(cur + 1)];
+        c  = base64_dec_table[*(cur + 2)];
+        d  = base64_dec_table[*(cur + 3)];
+        value = (d << 24) | (c << 16) | (b << 8) | a;
+        *(out + 0) = (a << 2) | ((b & 0x30) >> 4);
+        *(out + 1) = (b << 4) | ((c & 0x3C) >> 2);
+        *(out + 2) = ((c & 0x03) << 6) | (d & 0x3F);
+        if ((value & 0x80808080UL) != 0) {
+            // Found '\0', '=' or another chars
+            break;
+        }
+        cur += 4;
+        out += 3;
+    }
+#endif
+
+	/* Each cycle of the loop handles a quantum of 4 input bytes. For the last
+	   quantum this may decode to 1, 2, or 3 output bytes. */
+
+	int x, y;
+	while ((x = (*cur++)) != 0) {
+		if (x > 127 || (x = base64_dec_table[x]) == 255)
+			goto err_exit;
+		if ((y = (*cur++)) == 0 || (y = base64_dec_table[y]) == 255)
+			goto err_exit;
+		*out++ = (x << 2) | (y >> 4);
+
+		if ((x = (*cur++)) == '=')
+		{
+			if (*cur++ != '=' || *cur != 0)
+				goto err_exit;
+		}
+		else
+		{
+			if (x > 127 || (x = base64_dec_table[x]) == 255)
+				return -1;
+			*out++ = (y << 4) | (x >> 2);
+			if ((y = (*cur++)) == '=') {
+				if (*cur != 0)
+					goto err_exit;
+			}
+			else
+			{
+				if (y > 127 || (y = base64_dec_table[y]) == 255)
+					return -1;
+				*out++ = (x << 6) | y;
+			}
+		}
+	}
+
+	ssize_t decoded_size = out - decoded;
+	assert(decoded_size <= (ssize_t)alloc_size);
+    if (dest != NULL)
+        *dest = (char *)decoded;
+	return decoded_size;
+err_exit:
+	if (decoded)
+        free(decoded);
+    decoded = (unsigned char *)malloc(1);
+    *decoded = '\0';
+    if (dest != NULL)
+        *dest = (char *)decoded;
 	return -1;
 }
