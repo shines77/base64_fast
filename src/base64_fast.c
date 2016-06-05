@@ -178,8 +178,8 @@ ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t
 	register unsigned char * out = (unsigned char *)dest;
 
     while (cur < end) {
-        register unsigned char a, b, c, d;
-        register uint32_t value;
+        register unsigned int a, b, c, d;
+        register unsigned int value;
         a  = base64_dec_table[*(cur + 0)];
         b  = base64_dec_table[*(cur + 1)];
         c  = base64_dec_table[*(cur + 2)];
@@ -189,9 +189,9 @@ ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t
 #else
         value = (d << 24) | (c << 16) | (b << 8) | a;
 #endif
-        *(out + 0) = (a << 2) | ((b & (unsigned char)0x30U) >> 4);
-        *(out + 1) = (b << 4) | ((c & (unsigned char)0x3CU) >> 2);
-        *(out + 2) = ((c & (unsigned char)0x03U) << 6) | (d & (unsigned char)0x3FU);
+        *(out + 0) = (a << 2) | ((b & 0x30U) >> 4);
+        *(out + 1) = (b << 4) | ((c & 0x3CU) >> 2);
+        *(out + 2) = ((c & 0x03U) << 6) | (d & 0x3FU);
         cur += 4;
         out += 3;
 
@@ -218,9 +218,9 @@ ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t
         }
         //*/
 #endif
-        *(out + 0) = (a << 2) | ((b & (unsigned char)0x30U) >> 4);
-        *(out + 1) = (b << 4) | ((c & (unsigned char)0x3CU) >> 2);
-        *(out + 2) = ((c & (unsigned char)0x03U) << 6) | (d & (unsigned char)0x3FU);
+        *(out + 0) = (a << 2) | ((b & 0x30U) >> 4);
+        *(out + 1) = (b << 4) | ((c & 0x3CU) >> 2);
+        *(out + 2) = ((c & 0x03U) << 6) | (d & 0x3FU);
         cur += 4;
         out += 3;
     }
