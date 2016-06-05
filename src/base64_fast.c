@@ -172,11 +172,11 @@ ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t
 	// Get the length of the integer multiple of 4 is obtained.
 	size_t multiply4_len = src_len & (~(size_t)(8 - 1));
 
-    const unsigned char * cur = (const unsigned char *)src;
-    const unsigned char * end = cur + multiply4_len;
-	unsigned char * out = (unsigned char *)dest;
-
 #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+    register const unsigned char * cur = (const unsigned char *)src;
+    const unsigned char * end = cur + multiply4_len;
+	register unsigned char * out = (unsigned char *)dest;
+
     while (cur < end) {
         register unsigned char a, b, c, d;
         register uint32_t value;
@@ -225,6 +225,10 @@ ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t
         out += 3;
     }
 #else
+    const unsigned char * cur = (const unsigned char *)src;
+    const unsigned char * end = cur + multiply4_len;
+	unsigned char * out = (unsigned char *)dest;
+
     while (cur < end) {
         register uint32_t a, b, c, d;
         uint32_t value;
