@@ -37,16 +37,6 @@ static const unsigned char base64_dec_table[] = {
 
 ssize_t base64_encode(const char * src, size_t src_len, char * dest, size_t dest_len)
 {
-    return 0;
-}
-
-ssize_t base64_decode(const char * src, size_t src_len, char * dest, size_t dest_len)
-{
-    return 0;
-}
-
-ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
-{
 	size_t alloc_size = ((src_len + 2) / 3) * 4 + 1;
     if (dest == NULL) {
         return (dest_len == 0) ? (ssize_t)alloc_size : -1;
@@ -162,7 +152,7 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
 	return encoded_size;
 }
 
-ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
+ssize_t base64_decode(const char * src, size_t src_len, char * dest, size_t dest_len)
 {
 	size_t alloc_size = ((src_len + 3) / 4) * 3;
     if (dest == NULL) {
@@ -295,7 +285,7 @@ err_exit:
 	return -1;
 }
 
-ssize_t base64_decode_fast2(const char * src, size_t src_len, char * dest, size_t dest_len)
+ssize_t base64_decode2(const char * src, size_t src_len, char * dest, size_t dest_len)
 {
 	size_t alloc_size = ((src_len + 3) / 4) * 3;
     if (dest == NULL) {
@@ -317,20 +307,15 @@ ssize_t base64_decode_fast2(const char * src, size_t src_len, char * dest, size_
         b  = base64_dec_table[*cur++];
         c  = base64_dec_table[*cur++];
         d  = base64_dec_table[*cur++];
-#if 1
         value = a | b | c | d;
-#else
-        value = (d << 24) | (c << 16) | (b << 8) | a;
-#endif
-        *out++ = (a << 2) | ((b & (unsigned char)0x30U) >> 4);
-        *out++ = (b << 4) | ((c & (unsigned char)0x3CU) >> 2);
-        *out++ = ((c & (unsigned char)0x03U) << 6) | (d & (unsigned char)0x3FU);
+        *out++ = (a << 2) | ((b & 0x30U) >> 4);
+        *out++ = (b << 4) | ((c & 0x3CU) >> 2);
+        *out++ = ((c & 0x03U) << 6) | (d & 0x3FU);
 
         a  = base64_dec_table[*cur++];
         b  = base64_dec_table[*cur++];
         c  = base64_dec_table[*cur++];
         d  = base64_dec_table[*cur++];
-#if 1
         value |= a | b | c | d;
         if ((value & 0x80UL) != 0) {
             // Found '\0', '=' or another chars
@@ -338,39 +323,37 @@ ssize_t base64_decode_fast2(const char * src, size_t src_len, char * dest, size_
             out -= 3;
             break;
         }
-#else
-        value |= (d << 24) | (c << 16) | (b << 8) | a;
-        /*
-        if ((value & 0x80808080UL) != 0) {
-            // Found '\0', '=' or another chars
-            break;
-        }
-        //*/
-#endif
-        *out++ = (a << 2) | ((b & (unsigned char)0x30U) >> 4);
-        *out++ = (b << 4) | ((c & (unsigned char)0x3CU) >> 2);
-        *out++ = ((c & (unsigned char)0x03U) << 6) | (d & (unsigned char)0x3FU);
+        *out++ = (a << 2) | ((b & 0x30U) >> 4);
+        *out++ = (b << 4) | ((c & 0x3CU) >> 2);
+        *out++ = ((c & 0x03U) << 6) | (d & 0x3FU);
     }
 #else
     while (cur < end) {
         register uint32_t a, b, c, d;
         uint32_t value;
-        a  = base64_dec_table[*(cur + 0)];
-        b  = base64_dec_table[*(cur + 1)];
-        c  = base64_dec_table[*(cur + 2)];
-        d  = base64_dec_table[*(cur + 3)];
-        value = (d << 24) | (c << 16) | (b << 8) | a;
-        *(out + 0) = (a << 2) | ((b & 0x30) >> 4);
-        *(out + 1) = (b << 4) | ((c & 0x3C) >> 2);
-        *(out + 2) = ((c & 0x03) << 6) | (d & 0x3F);
-        /*
-        if ((value & 0x80808080UL) != 0) {
+        a  = base64_dec_table[*cur++];
+        b  = base64_dec_table[*cur++];
+        c  = base64_dec_table[*cur++];
+        d  = base64_dec_table[*cur++];
+        value = a | b | c | d;
+        *out++ = (a << 2) | ((b & 0x30) >> 4);
+        *out++ = (b << 4) | ((c & 0x3C) >> 2);
+        *out++ = ((c & 0x03) << 6) | (d & 0x3F);
+
+        a  = base64_dec_table[*cur++];
+        b  = base64_dec_table[*cur++];
+        c  = base64_dec_table[*cur++];
+        d  = base64_dec_table[*cur++];
+        value |= a | b | c | d;
+        if ((value & 0x80UL) != 0) {
             // Found '\0', '=' or another chars
+            cur -= 8;
+            out -= 3;
             break;
         }
-        //*/
-        cur += 4;
-        out += 3;
+        *out++ = (a << 2) | ((b & 0x30) >> 4);
+        *out++ = (b << 4) | ((c & 0x3C) >> 2);
+        *out++ = ((c & 0x03) << 6) | (d & 0x3F);
     }
 #endif
 
@@ -418,7 +401,7 @@ err_exit:
 	return -1;
 }
 
-ssize_t base64_encode_alloc(const char * src, size_t src_len, char ** dest)
+ssize_t base64_encode_malloc(const char * src, size_t src_len, char ** dest)
 {
 	size_t alloc_size = ((src_len + 2) / 3) * 4 + 1;
     if (dest == NULL)
@@ -515,7 +498,7 @@ ssize_t base64_encode_alloc(const char * src, size_t src_len, char ** dest)
 	return encoded_size;
 }
 
-ssize_t base64_decode_alloc(const char * src, size_t src_len, char ** dest)
+ssize_t base64_decode_malloc(const char * src, size_t src_len, char ** dest)
 {
 	size_t alloc_size = ((src_len + 3) / 4) * 3;
     if (dest == NULL)
@@ -619,4 +602,14 @@ err_exit:
     if (dest != NULL)
         *dest = (char *)decoded;
 	return -1;
+}
+
+ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
+{
+    return 0;
+}
+
+ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t dest_len)
+{
+    return 0;
 }

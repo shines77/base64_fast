@@ -22,7 +22,7 @@ base64_enc(FILE *fp)
 	int ret = 1;
     size_t out_len = sizeof(out) - 1;
 	while ((nread = fread(buf, 1, BUFSIZE, fp)) > 0) {
-		nout = base64_encode_fast(buf, nread, out, out_len);
+		nout = base64_encode(buf, nread, out, out_len);
 		if (nout > 0) {
 			fwrite(out, nout, 1, stdout);
 		}
@@ -47,7 +47,7 @@ base64_dec(FILE *fp)
 	int ret = 1;
     size_t out_len = sizeof(out) - 1;
 	while ((nread = fread(buf, 1, BUFSIZE, fp)) > 0) {
-		if ((nout = base64_decode_fast(buf, nread, out, out_len)) < 0) {
+		if ((nout = base64_decode(buf, nread, out, out_len)) < 0) {
 			fprintf(stderr, "decoding error\n");
 			ret = 0;
 			goto dec_out;

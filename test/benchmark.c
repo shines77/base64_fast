@@ -209,7 +209,7 @@ codec_bench_enc(struct buffers *b, const struct bufsize *bs, const char *name)
 		// Timing loop, use batches to increase timer resolution:
 		clock_gettime(CLOCK_REALTIME, &start);
 		for (int j = bs->batch * zoom_times; j; j--)
-			base64_encode_fast((const char *)b->reg, b->regsz, b->enc, b->encsz);
+			base64_encode((const char *)b->reg, b->regsz, b->enc, b->encsz);
 		clock_gettime(CLOCK_REALTIME, &end);
 
 		// Calculate average time of batch:
@@ -239,7 +239,7 @@ codec_bench_dec(struct buffers *b, const struct bufsize *bs, const char *name)
 		// Timing loop, use batches to increase timer resolution:
 		clock_gettime(CLOCK_REALTIME, &start);
 		for (int j = bs->batch * zoom_times; j; j--)
-			base64_decode_fast((const char *)b->enc, b->encsz, b->reg, b->regsz);
+			base64_decode((const char *)b->enc, b->encsz, b->reg, b->regsz);
 		clock_gettime(CLOCK_REALTIME, &end);
 
 		// Calculate average time of batch:
@@ -272,7 +272,7 @@ int main(int argc, char * argv[])
 
 	// Set buffer sizes to largest buffer length:
 	b.regsz = sizes[0].len;
-	b.encsz = sizes[0].len * 5 / 3;
+	b.encsz = (sizes[0].len * 5 + 2) / 3;
 
 	// Allocate space for megabytes of random data:
 	if ((b.reg = (char *)malloc(b.regsz)) == NULL) {
@@ -300,7 +300,7 @@ int main(int argc, char * argv[])
 			sizes[i].label, sizes[i].repeat, sizes[i].batch);
 
         codec_bench(&b, &sizes[i]);
-	};
+	}
 
 	// Free memory:
 err2:
