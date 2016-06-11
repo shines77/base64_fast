@@ -573,28 +573,18 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
 	register unsigned char *       out = (unsigned char *)dest;
 
 	while (cur < end) {
-		register unsigned int a, b, c;
-		a = (unsigned int)(*(cur + 0));
-		b = (unsigned int)(*(cur + 1));
-		c = (unsigned int)(*(cur + 2));
-		*(out + 0) = base64_enc_chars[(a >> 2)];
-		*(out + 1) = base64_enc_chars[((a << 4) & 0x30U) | (b >> 4)];
-		*(out + 2) = base64_enc_chars[((b << 2) & 0x3CU) | (c >> 6)];
-        *(out + 3) = base64_enc_chars[(c & 0x3FU)];
-        cur += 3;
-        out += 4;
-#if 0
-        //register unsigned int a2, b2, c2;
-		a = (unsigned int)(*(cur + 0));
-		b = (unsigned int)(*(cur + 1));
-		c = (unsigned int)(*(cur + 2));
-		*(out + 0) = base64_enc_chars[(a >> 2)];
-		*(out + 1) = base64_enc_chars[((a << 4) & 0x30U) | (b >> 4)];
-		*(out + 2) = base64_enc_chars[((b << 2) & 0x3CU) | (c >> 6)];
-        *(out + 3) = base64_enc_chars[(c & 0x3FU)];
-		cur += 3;
-        out += 4;
-#endif
+        register uint64_t cur64 = *(uint64_t *)cur;
+        cur64 = __byteswap64(cur64);
+		*out++ = base64_enc_chars[(cur64 >> 58)];
+
+        *out++ = base64_enc_chars[(cur64 >> 52) & 0x3FU];
+		*out++ = base64_enc_chars[(cur64 >> 46) & 0x3FU];
+        *out++ = base64_enc_chars[(cur64 >> 40) & 0x3FU];
+		*out++ = base64_enc_chars[(cur64 >> 34) & 0x3FU];
+		*out++ = base64_enc_chars[(cur64 >> 28) & 0x3FU];
+        *out++ = base64_enc_chars[(cur64 >> 22) & 0x3FU];
+		*out++ = base64_enc_chars[(cur64 >> 16) & 0x3FU];
+        cur += 6;
 	}
 #else
     register const unsigned char * cur = (const unsigned char *)src;

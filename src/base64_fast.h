@@ -27,8 +27,11 @@ typedef ptrdiff_t ssize_t;
 // Endian conversion functions
 #if !defined(__BYTE_ORDER) || (__BYTE_ORDER != __BIG_ENDIAN || __BIG_ENDIAN == 0)
   #if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
-    uint32_t __byteswap32(uint32_t v);
-    uint64_t __byteswap64(uint64_t v);
+    #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+    extern uint64_t __byteswap64(uint64_t v);
+    #else
+    extern uint32_t __byteswap32(uint32_t v);
+    #endif
     #define INLINE __inline
   #else
     #define __byteswap32(x) __builtin_bswap32(x)
@@ -50,12 +53,11 @@ ssize_t base64_decode_fast(const char * src, size_t src_len, char * dest, size_t
 ssize_t base64_encode_malloc(const char * src, size_t src_len, char ** dest);
 ssize_t base64_decode_malloc(const char * src, size_t src_len, char ** dest);
 
-extern const unsigned char base64_enc_chars[];
-extern const unsigned char base64_dec_table[];
-
 #if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+#else
 static INLINE
 __declspec(naked)
 uint32_t __byteswap32(uint32_t v)
@@ -66,8 +68,10 @@ uint32_t __byteswap32(uint32_t v)
         ret
     }
 }
+#endif
 
 #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+#if 0
 static INLINE
 __declspec(naked)
 uint64_t __byteswap64(uint64_t v)
@@ -78,7 +82,9 @@ uint64_t __byteswap64(uint64_t v)
         ret
     }
 }
+#endif
 #else
+#if 0
 static INLINE
 uint64_t __byteswap64(uint64_t v)
 {
@@ -98,6 +104,7 @@ uint64_t __byteswap64(uint64_t v)
     r.v.high = low;
     return r.u64;
 }
+#endif
 #endif // _WIN64
 #endif // _MSC_VER
 
@@ -106,5 +113,8 @@ uint64_t __byteswap64(uint64_t v)
 #ifdef __cplusplus
 }
 #endif
+
+extern const unsigned char base64_enc_chars[];
+extern const unsigned char base64_dec_table[];
 
 #endif  /* !_JIMIC_SYSTEM_CONSOLE_H_ */

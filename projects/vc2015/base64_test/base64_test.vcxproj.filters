@@ -23,4 +23,12 @@
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\bswap32.asm">
+      <Filter>src</Filter>
+    </None>
+    <None Include="..\..\..\src\bswap64.asm">
+      <Filter>src</Filter>
+    </None>
+  </ItemGroup>
 </Project>

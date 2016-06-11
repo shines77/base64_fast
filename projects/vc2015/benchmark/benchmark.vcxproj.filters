@@ -23,4 +23,17 @@
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="..\..\..\src\bswap32.asm">
+      <Filter>src</Filter>
+    </MASM>
+    <MASM Include="..\..\..\src\bswap64.asm">
+      <Filter>src</Filter>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\base64_fast.inc">
+      <Filter>src</Filter>
+    </None>
+  </ItemGroup>
 </Project>
