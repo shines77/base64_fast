@@ -261,6 +261,73 @@ codec_bench(struct buffers *b, const struct bufsize *bs)
 	codec_bench_dec(b, bs, "plain");
 }
 
+static void
+codec_bench_enc_fast(struct buffers *b, const struct bufsize *bs, const char *name)
+{
+	double timediff, fastest = -1.0;
+	struct timespec start, end;
+
+	// Reset buffer size:
+	b->regsz = bs->len;
+
+	// Repeat benchmark a number of times for a fair test:
+	for (int i = bs->repeat; i; i--) {
+
+		// Timing loop, use batches to increase timer resolution:
+		clock_gettime(CLOCK_REALTIME, &start);
+		for (int j = bs->batch * zoom_times; j; j--)
+			base64_encode_fast((const char *)b->reg, b->regsz, b->enc, b->encsz);
+		clock_gettime(CLOCK_REALTIME, &end);
+
+		// Calculate average time of batch:
+		timediff = timediff_sec(&start, &end) / bs->batch;
+
+		// Update fastest time seen:
+		if (fastest < 0.0 || timediff < fastest)
+			fastest = timediff;
+	}
+
+	printf("%s\tencode\t%.02f MB/sec, fastest\t%0.3f ms\n", name,
+        bytes_to_mb(b->regsz) / fastest, fastest * 1000.0);
+}
+
+static void
+codec_bench_dec_fast(struct buffers *b, const struct bufsize *bs, const char *name)
+{
+	double timediff, fastest = -1.0;
+	struct timespec start, end;
+
+	// Reset buffer size:
+	b->encsz = bs->len;
+
+	// Repeat benchmark a number of times for a fair test:
+	for (int i = bs->repeat; i; i--) {
+
+		// Timing loop, use batches to increase timer resolution:
+		clock_gettime(CLOCK_REALTIME, &start);
+		for (int j = bs->batch * zoom_times; j; j--)
+			base64_decode_fast((const char *)b->enc, b->encsz, b->reg, b->regsz);
+		clock_gettime(CLOCK_REALTIME, &end);
+
+		// Calculate average time of batch:
+		timediff = timediff_sec(&start, &end) / bs->batch;
+
+		// Update fastest time seen:
+		if (fastest < 0.0 || timediff < fastest)
+			fastest = timediff;
+	}
+
+	printf("%s\tdecode\t%.02f MB/sec, fastest\t%0.3f ms\n", name,
+        bytes_to_mb(b->encsz) / fastest, fastest * 1000.0);
+}
+
+static void
+codec_bench_fast(struct buffers *b, const struct bufsize *bs)
+{
+	codec_bench_enc_fast(b, bs, "plain");
+	codec_bench_dec_fast(b, bs, "plain");
+}
+
 int main(int argc, char * argv[])
 {
     (void)argc;
@@ -300,6 +367,20 @@ int main(int argc, char * argv[])
 			sizes[i].label, sizes[i].repeat, sizes[i].batch);
 
         codec_bench(&b, &sizes[i]);
+	}
+
+    printf("-------------------------------------------\n");
+
+	// Set buffer sizes to largest buffer length:
+	b.regsz = sizes[0].len;
+	b.encsz = (sizes[0].len * 5 + 2) / 3;
+
+	// Loop over all buffer sizes:
+	for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
+		printf("Testing with buffer size %s, fastest of %d * %d\n",
+			sizes[i].label, sizes[i].repeat, sizes[i].batch);
+
+        codec_bench_fast(&b, &sizes[i]);
 	}
 
 	// Free memory:
