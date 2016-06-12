@@ -22,7 +22,7 @@ include base64_fast.inc
 
 ;.data ?
 
-;.const
+.const
 
 page
 
