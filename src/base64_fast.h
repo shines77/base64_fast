@@ -30,7 +30,8 @@ typedef ptrdiff_t ssize_t;
     #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
     extern uint64_t __byteswap64(uint64_t v);
     #else
-    extern uint32_t __stdcall __byteswap32(uint32_t v);
+    extern uint32_t __byteswap32(uint32_t v);
+    extern uint32_t __byteswap32_(uint32_t v);
     #endif
     #define INLINE __inline
   #else
@@ -69,6 +70,8 @@ uint32_t __byteswap32(uint32_t v)
         ret
     }
 }
+#else
+#define __byteswap32    __byteswap32_
 #endif
 #endif
 

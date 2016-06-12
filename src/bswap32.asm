@@ -5,20 +5,26 @@ title ByteSwap32    (bswap32.asm)
 ;
 ; See: http://www.cppblog.com/luqingfei/archive/2010/08/11/123078.aspx
 ; See: http://www.cppblog.com/luqingfei/archive/2010/08/11/123078.aspx
+; See: https://msdn.microsoft.com/en-us/library/ss9fh0d6.aspx
 ;
 
+ifndef X64
 .586
+;.686p
 ;.mmx
-.model flat, stdcall
-option casemap : none
+;.XMM
+.model flat, C
+option casemap:none
+endif
 
 .xlist
 include base64_fast.inc
 .list
 
-.stack
+;.stack 100h
 
 .data
+; user data
 
 ;.data ?
 
@@ -27,6 +33,7 @@ include base64_fast.inc
 page
 
 .code
+; user code
 
 assume  ds : FLAT
 assume  es : FLAT
@@ -34,16 +41,16 @@ assume  ss : FLAT
 
 align   16
 
-public          __byteswap32
+public			__byteswap32_
 
-__byteswap32    proc    val:dword
+__byteswap32_   proc    val:dword
 
 OPTION PROLOGUE:NONE, EPILOGUE:NONE
 
-                mov     eax, val
-                bswap   eax
-                ret
+				mov     eax, val
+				bswap   eax
+				ret
 
-__byteswap32    endp
+__byteswap32_   endp
 
 end

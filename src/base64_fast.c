@@ -576,7 +576,6 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
         register uint64_t cur64 = *(uint64_t *)cur;
         cur64 = __byteswap64(cur64);
         *out++ = base64_enc_chars[(cur64 >> 58)];
-
         *out++ = base64_enc_chars[(cur64 >> 52) & 0x3FU];
         *out++ = base64_enc_chars[(cur64 >> 46) & 0x3FU];
         *out++ = base64_enc_chars[(cur64 >> 40) & 0x3FU];
@@ -588,7 +587,7 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
     }
 #else
     register const unsigned char * cur = (const unsigned char *)src;
-    const unsigned char *          end = cur + max_src_len;
+    register const unsigned char * end = cur + max_src_len;
     register unsigned char *       out = (unsigned char *)dest;
     // The src address is not align to 4 bytes.
 #if 1
