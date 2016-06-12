@@ -30,17 +30,17 @@ typedef ptrdiff_t ssize_t;
     #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
     extern uint64_t __byteswap64(uint64_t v);
     #else
-    extern uint32_t __byteswap32(uint32_t v);
+    extern uint32_t __stdcall __byteswap32(uint32_t v);
     #endif
     #define INLINE __inline
   #else
     #define __byteswap32(x) __builtin_bswap32(x)
-    #define __byteswap64(x)	__builtin_bswap64(x)
+    #define __byteswap64(x) __builtin_bswap64(x)
     #define INLINE inline
   #endif
 #else
-    #define __byteswap32(x)	(x)
-    #define __byteswap64(x)	(x)
+    #define __byteswap32(x) (x)
+    #define __byteswap64(x) (x)
     #define INLINE inline
 #endif
 
@@ -58,6 +58,7 @@ ssize_t base64_decode_malloc(const char * src, size_t src_len, char ** dest);
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
 #else
+#if 0
 static INLINE
 __declspec(naked)
 uint32_t __byteswap32(uint32_t v)
@@ -68,6 +69,7 @@ uint32_t __byteswap32(uint32_t v)
         ret
     }
 }
+#endif
 #endif
 
 #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)

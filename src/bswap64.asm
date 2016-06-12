@@ -14,7 +14,7 @@ align   16
 
 public          __byteswap64
 
-__byteswap64	proc	frame
+__byteswap64    proc    frame
 .endprolog
 
 OPTION PROLOGUE:NONE, EPILOGUE:NONE
@@ -23,7 +23,7 @@ OPTION PROLOGUE:NONE, EPILOGUE:NONE
                 mov     rax, rdi
                 ret
 
-__byteswap64	endp
+__byteswap64    endp
 
 _TEXT ends
 

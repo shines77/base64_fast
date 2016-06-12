@@ -12,13 +12,13 @@ title ByteSwap32    (bswap32.asm)
 .model flat, stdcall
 option casemap : none
 
-;.xlist
+.xlist
 include base64_fast.inc
-;.list
+.list
 
-;.stack
+.stack
 
-;.data
+.data
 
 ;.data ?
 
@@ -32,18 +32,18 @@ assume  ds : FLAT
 assume  es : FLAT
 assume  ss : FLAT
 
-;align   16
+align   16
 
 public          __byteswap32
 
-__byteswap32	proc	val:dword
+__byteswap32    proc    val:dword
 
 OPTION PROLOGUE:NONE, EPILOGUE:NONE
 
-				mov		eax, val
-				bswap	eax
-				ret
+                mov     eax, val
+                bswap   eax
+                ret
 
-__byteswap32	endp
+__byteswap32    endp
 
 end
