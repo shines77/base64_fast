@@ -572,6 +572,22 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
     register const unsigned char * end = cur + max_src_len;
     register unsigned char *       out = (unsigned char *)dest;
 
+#if 1
+    while (cur < end) {
+        register uint64_t cur64 = *(uint64_t *)cur;
+        cur64 = __byteswap64(cur64);
+        *(out + 0) = base64_enc_chars[(cur64 >> 58)];
+        *(out + 1) = base64_enc_chars[(cur64 >> 52) & 0x3FU];
+        *(out + 2) = base64_enc_chars[(cur64 >> 46) & 0x3FU];
+        *(out + 3) = base64_enc_chars[(cur64 >> 40) & 0x3FU];
+        *(out + 4) = base64_enc_chars[(cur64 >> 34) & 0x3FU];
+        *(out + 5) = base64_enc_chars[(cur64 >> 28) & 0x3FU];
+        *(out + 6) = base64_enc_chars[(cur64 >> 22) & 0x3FU];
+        *(out + 7) = base64_enc_chars[(cur64 >> 16) & 0x3FU];
+        out += 8;
+        cur += 6;
+    }
+#else
     while (cur < end) {
         register uint64_t cur64 = *(uint64_t *)cur;
         cur64 = __byteswap64(cur64);
@@ -585,6 +601,7 @@ ssize_t base64_encode_fast(const char * src, size_t src_len, char * dest, size_t
         *out++ = base64_enc_chars[(cur64 >> 16) & 0x3FU];
         cur += 6;
     }
+#endif
 #else
     register const unsigned char * cur = (const unsigned char *)src;
     register const unsigned char * end = cur + max_src_len;
