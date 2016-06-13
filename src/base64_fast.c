@@ -191,48 +191,69 @@ ssize_t base64_decode(const char * src, size_t src_len, char * dest, size_t dest
         c  = base64_dec_table[*(cur + 2)];
         d  = base64_dec_table[*(cur + 3)];
         value = a | b | c | d;
+#if 0
+        if ((value & 0x80U) != 0) {
+            // Found '\0', '=' or another chars
+            break;
+        }
+#endif
+        *(out + 0) = (a << 2) | ((b & 0x30) >> 4);
+        *(out + 1) = (b << 4) | ((c & 0x3C) >> 2);
+        *(out + 2) = ((c & 0x03) << 6) | (d & 0x3F);
+        cur += 4;
+        out += 3;
+#if 1
+        a  = base64_dec_table[*(cur + 0)];
+        b  = base64_dec_table[*(cur + 1)];
+        c  = base64_dec_table[*(cur + 2)];
+        d  = base64_dec_table[*(cur + 3)];
+        value |= a | b | c | d;
         *(out + 0) = (a << 2) | ((b & 0x30) >> 4);
         *(out + 1) = (b << 4) | ((c & 0x3C) >> 2);
         *(out + 2) = ((c & 0x03) << 6) | (d & 0x3F);
         if ((value & 0x80U) != 0) {
             // Found '\0', '=' or another chars
+            cur -= 4;
+            out -= 3;
             break;
         }
         cur += 4;
         out += 3;
+#endif
     }
 #endif
 
     /* Each cycle of the loop handles a quantum of 4 input bytes. For the last
        quantum this may decode to 1, 2, or 3 output bytes. */
-    end = src + src_len;
+    end = (const unsigned char *)src + src_len;
 
-    int x, y;
-    while ((cur < end) && ((x = (*cur++)) != 0)) {
-        if (x > 127 || (x = base64_dec_table[x]) == 255)
+    register int x, y;
+    while ((cur < end) && (*cur != '\0')) {
+        if ((x = base64_dec_table[*cur++]) == 255)
             goto err_exit;
-        if ((y = (*cur++)) == 0 || (y = base64_dec_table[y]) == 255)
+        if ((y = base64_dec_table[*cur++]) == 255)
             goto err_exit;
         *out++ = (x << 2) | (y >> 4);
 
-        if ((x = (*cur++)) == '=')
-        {
-            if (*cur++ != '=' || *cur != 0)
+        if (*cur == '=') {
+            cur++;
+            if (*cur != '=' || *cur != 0)
                 goto err_exit;
+            *out = '\0';
         }
-        else
-        {
-            if (x > 127 || (x = base64_dec_table[x]) == 255)
-                return -1;
+        else {
+            if ((x = base64_dec_table[*cur++]) == 255)
+                goto err_exit;
             *out++ = (y << 4) | (x >> 2);
-            if ((y = (*cur++)) == '=') {
+            if (*cur == '=') {
+                cur++;
                 if (*cur != 0)
                     goto err_exit;
+                *out = '\0';
             }
-            else
-            {
-                if (y > 127 || (y = base64_dec_table[y]) == 255)
-                    return -1;
+            else {
+                if ((y = base64_dec_table[*cur++]) == 255)
+                    goto err_exit;
                 *out++ = (x << 6) | y;
             }
         }
@@ -322,34 +343,35 @@ ssize_t base64_decode2(const char * src, size_t src_len, char * dest, size_t des
 
     /* Each cycle of the loop handles a quantum of 4 input bytes. For the last
        quantum this may decode to 1, 2, or 3 output bytes. */
-    end = src + src_len;
+    end = (const unsigned char *)src + src_len;
 
-    int x, y;
-    while ((cur < end) && ((x = (*cur++)) != 0)) {
-        if (x > 127 || (x = base64_dec_table[x]) == 255)
+    register int x, y;
+    while ((cur < end) && (*cur != '\0')) {
+        if ((x = base64_dec_table[*cur++]) == 255)
             goto err_exit;
-        if ((y = (*cur++)) == 0 || (y = base64_dec_table[y]) == 255)
+        if ((y = base64_dec_table[*cur++]) == 255)
             goto err_exit;
         *out++ = (x << 2) | (y >> 4);
 
-        if ((x = (*cur++)) == '=')
-        {
-            if (*cur++ != '=' || *cur != 0)
+        if (*cur == '=') {
+            cur++;
+            if (*cur != '=' || *cur != 0)
                 goto err_exit;
+            *out = '\0';
         }
-        else
-        {
-            if (x > 127 || (x = base64_dec_table[x]) == 255)
-                return -1;
+        else {
+            if ((x = base64_dec_table[*cur++]) == 255)
+                goto err_exit;
             *out++ = (y << 4) | (x >> 2);
-            if ((y = (*cur++)) == '=') {
+            if (*cur == '=') {
+                cur++;
                 if (*cur != 0)
                     goto err_exit;
+                *out = '\0';
             }
-            else
-            {
-                if (y > 127 || (y = base64_dec_table[y]) == 255)
-                    return -1;
+            else {
+                if ((y = base64_dec_table[*cur++]) == 255)
+                    goto err_exit;
                 *out++ = (x << 6) | y;
             }
         }
@@ -498,34 +520,35 @@ ssize_t base64_decode_malloc(const char * src, size_t src_len, char ** dest)
 
     /* Each cycle of the loop handles a quantum of 4 input bytes. For the last
        quantum this may decode to 1, 2, or 3 output bytes. */
-    end = src + src_len;
+    end = (const unsigned char *)src + src_len;
 
-    int x, y;
-    while ((cur < end) && ((x = (*cur++)) != 0)) {
-        if (x > 127 || (x = base64_dec_table[x]) == 255)
+    register int x, y;
+    while ((cur < end) && (*cur != '\0')) {
+        if ((x = base64_dec_table[*cur++]) == 255)
             goto err_exit;
-        if ((y = (*cur++)) == 0 || (y = base64_dec_table[y]) == 255)
+        if ((y = base64_dec_table[*cur++]) == 255)
             goto err_exit;
         *out++ = (x << 2) | (y >> 4);
 
-        if ((x = (*cur++)) == '=')
-        {
-            if (*cur++ != '=' || *cur != 0)
+        if (*cur == '=') {
+            cur++;
+            if (*cur != '=' || *cur != 0)
                 goto err_exit;
+            *out = '\0';
         }
-        else
-        {
-            if (x > 127 || (x = base64_dec_table[x]) == 255)
-                return -1;
+        else {
+            if ((x = base64_dec_table[*cur++]) == 255)
+                goto err_exit;
             *out++ = (y << 4) | (x >> 2);
-            if ((y = (*cur++)) == '=') {
+            if (*cur == '=') {
+                cur++;
                 if (*cur != 0)
                     goto err_exit;
+                *out = '\0';
             }
-            else
-            {
-                if (y > 127 || (y = base64_dec_table[y]) == 255)
-                    return -1;
+            else {
+                if ((y = base64_dec_table[*cur++]) == 255)
+                    goto err_exit;
                 *out++ = (x << 6) | y;
             }
         }
