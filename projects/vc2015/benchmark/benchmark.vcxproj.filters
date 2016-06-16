@@ -31,9 +31,4 @@
       <Filter>src</Filter>
     </MASM>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\src\base64_fast.inc">
-      <Filter>src</Filter>
-    </None>
-  </ItemGroup>
 </Project>

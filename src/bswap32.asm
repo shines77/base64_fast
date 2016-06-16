@@ -14,11 +14,11 @@ ifndef X64
 ;.mmx
 ;.XMM
 .model flat, C
-option casemap:none
+option casemap : none
 endif
 
 .xlist
-include base64_fast.inc
+;include base64_fast.inc
 .list
 
 ;.stack 100h
