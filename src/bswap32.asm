@@ -4,7 +4,6 @@ title ByteSwap32    (bswap32.asm)
 
 ;
 ; See: http://www.cppblog.com/luqingfei/archive/2010/08/11/123078.aspx
-; See: http://www.cppblog.com/luqingfei/archive/2010/08/11/123078.aspx
 ; See: https://msdn.microsoft.com/en-us/library/ss9fh0d6.aspx
 ;
 
@@ -45,7 +44,7 @@ public			__byteswap32_
 
 __byteswap32_   proc    val:dword
 
-OPTION PROLOGUE:NONE, EPILOGUE:NONE
+;OPTION PROLOGUE:NONE, EPILOGUE:NONE
 
 				mov     eax, val
 				bswap   eax

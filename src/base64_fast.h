@@ -61,11 +61,23 @@ ssize_t base64_decode_malloc(const char * src, size_t src_len, char ** dest);
 #else
 #if 0
 static INLINE
+uint32_t __byteswap32(uint32_t v)
+{
+    __asm {
+        mov ebx, v
+        bswap ebx
+        lea eax, v
+        mov dword ptr [eax], ebx
+    }
+    return v;
+}
+#elif 1
+static INLINE
 __declspec(naked)
 uint32_t __byteswap32(uint32_t v)
 {
     __asm {
-        mov eax, v
+        mov eax, dword ptr [esp + 4]
         bswap eax
         ret
     }
