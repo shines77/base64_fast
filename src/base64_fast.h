@@ -27,22 +27,22 @@ typedef ptrdiff_t ssize_t;
 // Endian conversion functions
 #if !defined(__BYTE_ORDER) || (__BYTE_ORDER != __BIG_ENDIAN || __BIG_ENDIAN == 0)
   #if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
-    #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
-    extern uint64_t __byteswap64(uint64_t v);
-    #else
-    extern uint32_t __byteswap32(uint32_t v);
-    extern uint32_t __byteswap32_(uint32_t v);
-    #endif
     #define INLINE __inline
+    #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+    extern INLINE uint64_t __byteswap64(uint64_t v);
+    #else
+    extern INLINE uint32_t __byteswap32(uint32_t v);
+    extern INLINE uint32_t __byteswap32_(uint32_t v);
+    #endif
   #else
+    #define INLINE inline
     #define __byteswap32(x) __builtin_bswap32(x)
     #define __byteswap64(x) __builtin_bswap64(x)
-    #define INLINE inline
   #endif
 #else
+    #define INLINE inline
     #define __byteswap32(x) (x)
     #define __byteswap64(x) (x)
-    #define INLINE inline
 #endif
 
 ssize_t base64_encode(const char * src, size_t src_len, char * dest, size_t dest_len);
