@@ -27,20 +27,21 @@ typedef ptrdiff_t ssize_t;
 // Endian conversion functions
 #if !defined(__BYTE_ORDER) || (__BYTE_ORDER != __BIG_ENDIAN || __BIG_ENDIAN == 0)
   #if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
-    #define INLINE __inline
-    #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
-    extern INLINE uint64_t __byteswap64(uint64_t v);
+    #define INLINE  __inline
+    #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) \
+     || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+      extern INLINE uint64_t __byteswap64(uint64_t v);
     #else
-    extern INLINE uint32_t __byteswap32(uint32_t v);
-    extern INLINE uint32_t __byteswap32_(uint32_t v);
+      extern INLINE uint32_t __byteswap32(uint32_t v);
+      extern INLINE uint32_t __byteswap32_(uint32_t v);
     #endif
   #else
-    #define INLINE inline
+    #define INLINE  inline
     #define __byteswap32(x) __builtin_bswap32(x)
     #define __byteswap64(x) __builtin_bswap64(x)
   #endif
 #else
-    #define INLINE inline
+    #define INLINE  inline
     #define __byteswap32(x) (x)
     #define __byteswap64(x) (x)
 #endif
@@ -57,7 +58,8 @@ ssize_t base64_decode_malloc(const char * src, size_t src_len, char ** dest);
 #if defined(_WIN32) || defined(WIN32) || defined(OS_WINDOWS) || defined(__WINDOWS)
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) \
+ || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
 #else
 #if 0
 static INLINE
@@ -85,9 +87,10 @@ uint32_t __byteswap32(uint32_t v)
 #else
 #define __byteswap32    __byteswap32_
 #endif
-#endif
+#endif // _WIN64
 
-#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
+#if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64) \
+ || defined(_M_IA64) || defined(__amd64__) || defined(__x86_64__)
 #if 0
 static INLINE
 __declspec(naked)
